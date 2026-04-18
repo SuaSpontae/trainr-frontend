@@ -89,6 +89,32 @@
   .pace-table th { text-align: left; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #888; border-bottom: 1px solid #eee; }
   .pace-table td { padding: 8px 8px; border-bottom: 1px solid #f5f5f5; }
   .pace-table tr:last-child td { border-bottom: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .chat-wrap { position:fixed; bottom:0; left:0; right:0; z-index:100; }
+  .chat-bar { background:#fff; border-top:1px solid #ddd; padding:12px 16px; display:flex; gap:8px; align-items:center; max-width:720px; margin:0 auto; }
+  .chat-bar input { flex:1; padding:10px 14px; border:1px solid #ddd; border-radius:24px; font-size:14px; outline:none; }
+  .chat-bar input:focus { border-color:#2563eb; }
+  .chat-bar button { padding:10px 18px; background:#2563eb; color:#fff; border:none; border-radius:24px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .chat-bar button:disabled { background:#aaa; }
+  .chat-panel { background:#fff; border-top:1px solid #eee; max-height:55vh; overflow-y:auto; max-width:720px; margin:0 auto; display:none; }
+  .chat-panel.open { display:block; }
+  .chat-header { padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+  .chat-header span { font-size:14px; font-weight:600; color:#222; }
+  .chat-header button { background:none; border:none; font-size:18px; cursor:pointer; color:#888; }
+  .chat-msgs { padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .msg { max-width:85%; }
+  .msg.user { align-self:flex-end; }
+  .msg.coach { align-self:flex-start; }
+  .msg-bubble { padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.6; }
+  .msg.user .msg-bubble { background:#2563eb; color:#fff; border-bottom-right-radius:4px; }
+  .msg.coach .msg-bubble { background:#f3f4f6; color:#222; border-bottom-left-radius:4px; }
+  .msg-name { font-size:11px; color:#aaa; margin-bottom:4px; }
+  .msg.user .msg-name { text-align:right; }
+  .typing { display:flex; gap:4px; padding:10px 14px; background:#f3f4f6; border-radius:16px; border-bottom-left-radius:4px; width:fit-content; }
+  .typing span { width:6px; height:6px; background:#aaa; border-radius:50%; animation:bounce 1s infinite; }
+  .typing span:nth-child(2) { animation-delay:.15s; }
+  .typing span:nth-child(3) { animation-delay:.3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
   @media (max-width: 480px) { .lr { grid-template-columns: 1fr 1fr; } .wg { grid-template-columns: repeat(2,1fr); } .pp { grid-template-columns: repeat(3,1fr); } }
 </style>
 </head>
@@ -104,6 +130,13 @@
     <div class="n" id="dout">&mdash;</div>
     <div class="l">days to race</div>
   </div>
+</div>
+
+<div style="margin-bottom:16px;display:flex;gap:10px;align-items:center">
+  <button onclick="syncAll()" id="sync-btn" style="padding:10px 20px;font-size:14px;font-weight:600;border-radius:10px;cursor:pointer;border:none;background:#2563eb;color:#fff;display:flex;align-items:center;gap:8px">
+    <span id="sync-icon">↻</span> Sync Whoop &amp; Health
+  </button>
+  <span id="sync-status" style="font-size:13px;color:#888"></span>
 </div>
 
 <div class="mg">
@@ -230,6 +263,21 @@
 <p class="st">Coaching history</p>
 <div id="hist-list"><p class="ds">Loading history...</p></div>
 
+</div>
+
+<div class="chat-wrap">
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-header">
+      <span>CoachClaude</span>
+      <button onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+  </div>
+  <div class="chat-bar">
+    <input type="text" id="chat-input" placeholder="Ask CoachClaude anything about your training..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="toggleChat()" id="chat-toggle-btn" style="background:#f3f4f6;color:#2563eb;border:1px solid #ddd">Coach</button>
+    <button onclick="sendChat()" id="chat-send-btn">Send</button>
+  </div>
 </div>
 
 <script>
@@ -607,6 +655,150 @@ async function submitCheckin() {
   document.getElementById('weekly-checkin-wrap').innerHTML='<p class="ds" style="color:#15803d">Weekly check-in saved. Your coach will use this for next week\'s plan.</p>';
   await loadHistory();
   await generateRec(`Weekly check-in: feel ${feel}/10, stress ${stress}/10${pain?', pain:'+pain:''}${notes?', notes:'+notes:''}`);
+}
+
+async function syncAll() {
+  const btn = document.getElementById('sync-btn');
+  const icon = document.getElementById('sync-icon');
+  const status = document.getElementById('sync-status');
+
+  btn.disabled = true;
+  icon.style.animation = 'spin 0.7s linear infinite';
+  status.textContent = 'Syncing Whoop data...';
+
+  try {
+    const whoopRes = await fetch('https://health-receiver-production.up.railway.app/whoop/sync');
+    const whoopData = await whoopRes.json();
+    status.textContent = whoopData.success ? 'Whoop synced. Refreshing...' : 'Whoop sync failed.';
+  } catch(e) {
+    status.textContent = 'Sync error — check connection.';
+  }
+
+  // Reload all data
+  await Promise.all([loadToday(), loadWeekStats(), loadHistory()]);
+  await generateRec();
+
+  btn.disabled = false;
+  icon.style.animation = '';
+  status.textContent = 'Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+let chatHistory = [];
+let chatOpen = false;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+  if (chatOpen && chatHistory.length === 0) {
+    addMsg('coach', `Hi! I'm CoachClaude. I have full context of your training data, recovery metrics, and plan. Ask me anything — about today's workout, your HRV trends, pacing strategy, nutrition, race day preparation, or anything else about your journey to sub-2:50 in Chicago.`);
+  }
+  if (chatOpen) document.getElementById('chat-input').focus();
+}
+
+function addMsg(role, text) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="msg-name">${role === 'user' ? 'You' : 'CoachClaude'}</div><div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg coach';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="msg-name">CoachClaude</div><div class="typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function buildCoachContext() {
+  const h = appData.today || {};
+  const p = appData.plan || {};
+  const wk = wkNum();
+  const weekLogs = appData.log.filter(l => l.run_distance_miles || l.run_duration_minutes);
+  const weekMiles = weekLogs.reduce((s,l) => s+(l.run_distance_miles||0),0).toFixed(1);
+
+  return `ATHLETE CONTEXT:
+- Goal: Chicago Marathon Oct 11 2026, sub-2:50 (6:30/mi, Daniels VDOT 54)
+- First marathon. Military/special operations background.
+- Week ${wk} of 25. Phase: ${p.phase || 'Base Rebuild'}
+- 90-day baselines: HRV 68.1ms, RHR 51.8 bpm, deep sleep 1.38hrs, peak week 32.1mi
+
+TODAY'S BIOMETRICS:
+- HRV: ${h.hrv_ms ? h.hrv_ms.toFixed(1)+'ms' : 'no data'}
+- Whoop recovery: ${h.whoop_recovery_score ? Math.round(h.whoop_recovery_score)+'/100' : 'no data'}
+- Resting HR: ${h.resting_hr ? Math.round(h.resting_hr)+' bpm' : 'no data'}
+- Sleep: ${h.sleep_total_hrs ? h.sleep_total_hrs.toFixed(1)+'hrs' : 'no data'} | Deep: ${h.sleep_deep_hrs ? h.sleep_deep_hrs.toFixed(1)+'hrs' : 'no data'} | REM: ${h.sleep_rem_hrs ? h.sleep_rem_hrs.toFixed(1)+'hrs' : 'no data'}
+
+TODAY'S PLAN: ${p.workout_type || 'easy'} ${p.target_miles || 0} miles — ${p.target_pace_description || ''}
+WEEK TARGET: ${p.week_total_miles || 0} miles | Logged so far: ${weekMiles} miles
+
+TRAINING LOG (last 10):
+${buildHistoryContext()}
+
+COACHING FRAMEWORKS: Jack Daniels Running Formula (VDOT 54), Pfitzinger Advanced Marathoning, Seiler 80/20 polarized training, HRV-guided intensity gating.`;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  const text = input.value.trim();
+  if (!text) return;
+
+  if (!chatOpen) {
+    chatOpen = true;
+    document.getElementById('chat-panel').classList.add('open');
+    if (chatHistory.length === 0) {
+      addMsg('coach', `Hi! I'm CoachClaude. I have full context of your training data, recovery metrics, and plan. Ask me anything about your journey to sub-2:50 in Chicago.`);
+    }
+  }
+
+  addMsg('user', text);
+  input.value = '';
+  sendBtn.disabled = true;
+  addTyping();
+
+  chatHistory.push({ role: 'user', content: text });
+
+  const systemPrompt = `You are CoachClaude, an elite marathon coach with deep knowledge of Jack Daniels' Running Formula, Pete Pfitzinger's Advanced Marathoning, Stephen Seiler's polarized training research, and HRV-guided training methodology. You are coaching a specific athlete toward a sub-2:50 Chicago Marathon on October 11, 2026.
+
+${buildCoachContext()}
+
+Respond conversationally but with specific, expert-level coaching advice. Always reference the athlete's actual data when relevant. Be direct and confident. Keep responses focused and practical — under 200 words unless the question requires more detail. When giving pace recommendations always use Daniels VDOT 54 zones.`;
+
+  try {
+    const messages = chatHistory.slice(-10);
+    const res = await fetch('https://health-receiver-production.up.railway.app/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Sorry, I could not generate a response.';
+    removeTyping();
+    addMsg('coach', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    removeTyping();
+    addMsg('coach', 'Connection error — check your internet and try again.');
+  }
+
+  sendBtn.disabled = false;
+  document.getElementById('chat-msgs').scrollTop = document.getElementById('chat-msgs').scrollHeight;
 }
 
 async function init() {
