@@ -160,6 +160,15 @@ textarea{resize:none;height:55px}
 .typing span:nth-child(2){animation-delay:.15s}
 .typing span:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.upcoming-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px}
+.upcoming-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.upcoming-day{font-size:13px;font-weight:700;color:var(--muted)}
+.upcoming-adj{font-size:10px;padding:3px 8px;border-radius:100px;font-weight:700;background:#f59e0b22;color:var(--yellow)}
+.upcoming-workout{font-size:15px;font-weight:700;margin-bottom:4px}
+.upcoming-stats{display:flex;gap:12px;margin-bottom:8px}
+.upcoming-stat{font-size:12px;color:var(--muted)}
+.upcoming-stat span{color:var(--text);font-weight:600}
+.upcoming-why{font-size:12px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:480px){.log-grid{grid-template-columns:1fr 1fr}.week-grid{grid-template-columns:repeat(2,1fr)}.metrics-row{grid-template-columns:repeat(2,1fr)}.sleep-grid,.sleep-scores,.body-row{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -271,6 +280,9 @@ textarea{resize:none;height:55px}
     <div class="today-stat"><div class="tsv" id="tp-pace" style="color:var(--yellow)">—</div><div class="tsl">pace zone</div></div>
   </div>
 </div>
+
+<p class="section-label">Coming up</p>
+<div id="upcoming-wrap" style="margin-bottom:20px"></div>
 
 <p class="section-label">AI recommendation</p>
 <div class="rec-ai-card">
@@ -653,7 +665,7 @@ async function syncAll(){
     status.textContent=d.success?'Synced':'Whoop sync failed';
   }catch(e){status.textContent='Sync error'}
   await Promise.all([loadToday(),loadWeekStats(),loadHistory()]);
-  await generateRec();
+  await Promise.all([generateRec(), loadUpcoming()]);
   btn.disabled=false;
   icon.classList.remove('spinning');
   status.textContent='Last synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -726,11 +738,88 @@ async function sendChat(){
   sendBtn.disabled=false;
 }
 
+async function loadUpcoming(){
+  const today = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  const days = [];
+  for(let i=1;i<=2;i++){
+    const d = new Date(today);
+    d.setDate(d.getDate()+i);
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    days.push({date:dateStr, label:i===1?'Tomorrow':d.toLocaleDateString('en-US',{weekday:'long'})});
+  }
+
+  const planRows = await Promise.all(days.map(d=>
+    sbGet('training_plan',`select=*&workout_date=eq.${d.date}&limit=1`).catch(()=>[])
+  ));
+
+  const h = appData.today||{};
+  const hrv = h.hrv_ms, rec = h.whoop_recovery_score;
+  const hrvTrend = hrv ? (hrv >= 68.1 ? 'above' : hrv >= 58 ? 'near' : 'below') : 'unknown';
+  const recoveryTrend = rec ? (rec >= 67 ? 'good' : rec >= 34 ? 'moderate' : 'low') : 'unknown';
+
+  const wrap = document.getElementById('upcoming-wrap');
+  wrap.innerHTML = '';
+
+  for(let i=0;i<days.length;i++){
+    const {date, label} = days[i];
+    const p = planRows[i]?.[0]||{};
+    if(!p.workout_type){wrap.innerHTML+=`<div class="upcoming-card"><div class="upcoming-day">${label}</div><div class="upcoming-workout" style="color:var(--dim)">No plan found</div></div>`;continue}
+
+    // Determine adjustment based on recovery trend
+    let adjustment = null, adjColor = 'var(--yellow)', adjText = '';
+    const isQuality = ['tempo','interval','marathon_pace'].includes(p.workout_type);
+    const isLong = p.workout_type === 'long';
+
+    // Day 1 (tomorrow) — base on today's recovery
+    // Day 2 — assume partial recovery
+    const projectedRecovery = i===0 ? rec : (rec ? Math.min(100, rec+10) : null);
+    const projectedHRV = i===0 ? hrv : (hrv ? Math.min(90, hrv+5) : null);
+
+    let adjMiles = p.target_miles;
+    let adjPace = paceStr(p.workout_type);
+
+    if(recoveryTrend==='low'&&isQuality){
+      adjustment='Swapped to easy';
+      adjText=`Recovery score ${rec}/100 is below threshold. Pfitzinger protocol: swap quality for easy miles to avoid digging a deeper hole.`;
+      adjMiles = Math.round(p.target_miles * 0.8 * 10)/10;
+      adjPace = paceStr('easy');
+    } else if(recoveryTrend==='low'&&isLong){
+      adjustment='Shortened';
+      adjText=`Low recovery (${rec}/100) and HRV ${hrv?.toFixed(1)}ms (↓ vs 68.1 baseline). Seiler 80/20: shorten long run by 20% to protect adaptation.`;
+      adjMiles = Math.round(p.target_miles * 0.8 * 10)/10;
+    } else if(recoveryTrend==='moderate'&&isQuality&&i===0){
+      adjustment='Reduced intensity';
+      adjText=`Moderate recovery (${rec}/100). Execute workout but target lower end of pace range. Stop if HR drifts >10bpm above target.`;
+    } else if(hrvTrend==='above'&&isQuality){
+      adjustment='Full send';
+      adjText=`HRV ${hrv?.toFixed(1)}ms is above your 68.1ms baseline. Daniels framework: you're primed for quality work — execute as planned or push the upper end of pace range.`;
+      adjColor='var(--green)';
+    }
+
+    const typeLabel = (p.workout_type||'rest').replace(/_/g,' ');
+    const paceLabel = adjustment&&['Swapped to easy'].includes(adjustment) ? paceStr('easy') : paceStr(p.workout_type);
+
+    wrap.innerHTML += `<div class="upcoming-card">
+      <div class="upcoming-header">
+        <div class="upcoming-day">${label} &middot; ${date}</div>
+        ${adjustment?`<div class="upcoming-adj" style="background:${adjColor}22;color:${adjColor}">${adjustment}</div>`:'<div class="upcoming-adj" style="background:#22c55e22;color:var(--green)">As planned</div>'}
+      </div>
+      <div class="upcoming-workout">${typeLabel.charAt(0).toUpperCase()+typeLabel.slice(1)} &mdash; ${adjMiles} miles</div>
+      <div class="upcoming-stats">
+        <div class="upcoming-stat">Pace <span>${paceLabel}</span></div>
+        <div class="upcoming-stat">Week target <span>${p.week_total_miles||'—'} mi</span></div>
+        ${p.is_quality?'<div class="upcoming-stat"><span style="color:var(--yellow)">Quality session</span></div>':''}
+      </div>
+      ${adjustment?`<div class="upcoming-why">⚡ ${adjText}</div>`:''}
+    </div>`;
+  }
+}
+
 async function init(){
   document.getElementById('dout').textContent=daysLeft();
   buildPhaseTrack(wkNum());
   await Promise.all([loadToday(),loadWeekStats(),loadHistory()]);
-  await generateRec();
+  await Promise.all([generateRec(), loadUpcoming()]);
 }
 init();
 </script>
