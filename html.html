@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chicago Marathon 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080f;--surface:#111118;--surface2:#18181f;--surface3:#1e1e26;
+  --border:#ffffff0f;--border2:#ffffff18;--border3:#ffffff22;
+  --text:#e8e8f0;--muted:#7070a0;--dim:#3a3a55;
+  --green:#22c55e;--yellow:#f59e0b;--red:#ef4444;
+  --blue:#3b82f6;--purple:#a855f7;--teal:#14b8a6;--orange:#f97316;
+  --green-bg:#22c55e12;--yellow-bg:#f59e0b12;--red-bg:#ef444412;
+  --blue-bg:#3b82f612;--purple-bg:#a855f712;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;min-height:100vh;padding-bottom:120px}
+.container{max-width:760px;margin:0 auto;padding:20px 16px}
+
+/* Header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.hdr h1{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:3px}
+.hdr p{font-size:13px;color:var(--muted)}
+.cd-n{font-size:44px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;text-align:right}
+.cd-l{font-size:10px;color:var(--muted);text-align:right;margin-top:2px;letter-spacing:.08em;text-transform:uppercase}
+
+/* Sync bar */
+.sync-row{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.sync-btn{display:flex;align-items:center;gap:7px;padding:9px 18px;background:var(--surface2);border:1px solid var(--border2);border-radius:100px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .2s}
+.sync-btn:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+.sync-btn:disabled{opacity:.4;cursor:not-allowed}
+.sync-icon{transition:transform .3s}
+.sync-icon.spin{animation:spin .8s linear infinite}
+.sync-st{font-size:12px;color:var(--muted)}
+
+/* Section label */
+.sl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.card.accent-green::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)}
+.card.accent-blue::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple))}
+.card.accent-yellow::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--yellow)}
+.card.accent-red::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)}
+
+/* Recovery */
+.rec-hero{display:flex;align-items:center;gap:20px;margin-bottom:18px}
+.rec-ring{width:80px;height:80px;border-radius:50%;border:3px solid var(--border3);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .5s}
+.rec-ring .score{font-size:26px;font-weight:800;line-height:1;transition:color .5s}
+.rec-ring .score-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.rec-title{font-size:18px;font-weight:700;margin-bottom:3px}
+.rec-sub{font-size:12px;color:var(--muted);line-height:1.5}
+.progress-bar{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width 1s ease,background .5s}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:14px}
+
+/* Metric grids */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.m{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 10px;text-align:center}
+.m .mv{font-size:20px;font-weight:700;line-height:1;margin-bottom:3px}
+.m .ml{font-size:10px;color:var(--muted);line-height:1.3}
+.m .ms{font-size:10px;margin-top:3px}
+.m4{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 8px;text-align:center}
+.m4 .mv{font-size:16px;font-weight:700;line-height:1;margin-bottom:2px}
+.m4 .ml{font-size:10px;color:var(--muted)}
+
+/* Flags */
+.flag{background:var(--yellow-bg);border:1px solid #f59e0b30;border-radius:12px;padding:11px 14px;margin-bottom:8px;font-size:12px;color:var(--yellow);line-height:1.5}
+.flag.red{background:var(--red-bg);border-color:#ef444430;color:var(--red)}
+.flag.green{background:var(--green-bg);border-color:#22c55e30;color:var(--green)}
+
+/* Phase track */
+.phase-wrap{margin-bottom:20px}
+.phase-track{display:flex;gap:4px;margin-bottom:8px}
+.phase-dot{flex:1;height:5px;border-radius:3px;background:var(--surface2)}
+.phase-dot.done{background:var(--dim)}
+.phase-dot.active{background:linear-gradient(90deg,var(--blue),var(--purple))}
+.phase-lbls{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.phase-lbl{font-size:9px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.phase-lbl.ac{color:var(--blue)}
+
+/* Training load */
+.tl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.tl-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.tl-val{font-size:22px;font-weight:700;margin-bottom:2px}
+.tl-lbl{font-size:10px;color:var(--muted)}
+.tl-desc{font-size:10px;margin-top:3px}
+
+/* Today workout */
+.tw-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.tw-header h3{font-size:16px;font-weight:700}
+.pill{font-size:11px;padding:4px 12px;border-radius:100px;font-weight:700}
+.pill.blue{background:var(--blue-bg);color:var(--blue);border:1px solid #3b82f630}
+.pill.yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid #f59e0b30}
+.pill.green{background:var(--green-bg);color:var(--green);border:1px solid #22c55e30}
+.pill.red{background:var(--red-bg);color:var(--red);border:1px solid #ef444430}
+.pill.purple{background:var(--purple-bg);color:var(--purple);border:1px solid #a855f730}
+.tw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.tw-s{background:var(--surface2);border-radius:10px;padding:10px;text-align:center}
+.tw-s .v{font-size:15px;font-weight:700;margin-bottom:2px}
+.tw-s .l{font-size:10px;color:var(--muted)}
+.tw-desc{font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--surface2);border-radius:10px}
+
+/* Upcoming */
+.up-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
+.up-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.up-day{font-size:12px;font-weight:700;color:var(--muted)}
+.up-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.up-row{display:flex;gap:10px;margin-bottom:6px}
+.up-stat{font-size:11px;color:var(--muted)}
+.up-stat span{color:var(--text);font-weight:600}
+.up-why{font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+
+/* AI rec */
+.ai-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ai-hdr h3{font-size:16px;font-weight:700}
+.fw-tag{font-size:10px;color:var(--blue);background:var(--blue-bg);border:1px solid #3b82f622;padding:3px 10px;border-radius:100px;margin-bottom:10px;display:inline-block}
+.ai-body{font-size:13px;line-height:1.85;color:#b0b0c8;white-space:pre-wrap}
+
+/* Week stats */
+.week-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.wi .wv{font-size:22px;font-weight:700;margin-bottom:3px}
+.wi .wl{font-size:11px;color:var(--muted)}
+
+/* Morning checkin */
+.checkin-card{background:var(--surface);border:2px solid #f59e0b30;border-radius:18px;padding:18px;margin-bottom:14px}
+.checkin-card h3{font-size:15px;font-weight:700;color:var(--yellow);margin-bottom:14px}
+.slider-wrap{margin-bottom:14px}
+.slider-wrap label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;margin-bottom:6px}
+.slider-wrap label span{color:var(--text);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--blue);height:4px}
+.checkin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+
+/* Log */
+.log-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+input[type=number],input[type=text],textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+textarea{resize:none;height:55px}
+.type-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tb{padding:7px 14px;font-size:12px;font-weight:600;border:1px solid var(--border2);border-radius:100px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.tb:hover,.tb.sl{background:var(--green-bg);color:var(--green);border-color:#22c55e40}
+.rpe-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.rb{width:38px;height:38px;font-size:13px;font-weight:700;border:1px solid var(--border2);border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.rb:hover,.rb.sl{background:var(--blue-bg);color:var(--blue);border-color:#3b82f640}
+.btn{width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:12px;cursor:pointer;border:none;color:#fff;letter-spacing:.02em;transition:opacity .2s;margin-top:4px}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.35}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+.btn-secondary{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.btn-green{background:linear-gradient(135deg,#22c55e,#16a34a)}
+
+/* History */
+.hc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px}
+.hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.hd{font-size:12px;color:var(--muted)}
+.ht{font-size:13px;font-weight:600}
+.hl{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.hbg{font-size:10px;padding:2px 8px;border-radius:100px;font-weight:700}
+.hbg.lg{background:var(--green-bg);color:var(--green)}
+.hbg.ul{background:var(--surface2);color:var(--dim)}
+.hbg.ci{background:var(--blue-bg);color:var(--blue)}
+
+/* Pace table */
+.pace-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.pace-row:last-child{border-bottom:none}
+.pz{font-size:13px;font-weight:700}
+.pv{font-size:13px;color:var(--muted)}
+.pd{font-size:11px;color:var(--dim);margin-top:2px}
+
+/* Snap */
+.snap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.snap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.snap .sl2{font-size:10px;color:var(--dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.snap .sv{font-size:17px;font-weight:700}
+
+/* Chat */
+.chat-wrap{position:fixed;bottom:0;left:0;right:0;z-index:100}
+.chat-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:flex;gap:8px;align-items:center;max-width:760px;margin:0 auto;backdrop-filter:blur(20px)}
+.chat-bar input{flex:1;padding:10px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:100px;font-size:14px;color:var(--text)}
+.chat-bar input::placeholder{color:var(--dim)}
+.chat-toggle{padding:10px 16px;background:var(--surface2);color:var(--blue);border:1px solid var(--border2);border-radius:100px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s}
+.chat-toggle:hover{background:var(--blue-bg)}
+.chat-send{padding:10px 18px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;border-radius:100px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.chat-send:disabled{opacity:.4}
+.chat-panel{background:var(--surface);border-top:1px solid var(--border);max-height:55vh;overflow-y:auto;max-width:760px;margin:0 auto;display:none}
+.chat-panel.open{display:block}
+.chat-ph{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.chat-ph span{font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.chat-ph button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)}
+.chat-msgs{padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%}
+.msg.user{align-self:flex-end}
+.msg.coach{align-self:flex-start}
+.msg-name{font-size:10px;color:var(--dim);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.msg.user .msg-name{text-align:right}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.6}
+.msg.user .msg-bubble{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border-bottom-right-radius:4px}
+.msg.coach .msg-bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
+.typing{display:flex;gap:4px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:4px;width:fit-content}
+.typing span{width:6px;height:6px;background:var(--dim);border-radius:50%;animation:bounce 1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-header h3{font-size:15px;font-weight:700}
+.chart-tabs{display:flex;gap:6px}
+.chart-tab{padding:5px 12px;font-size:11px;font-weight:600;border:1px solid var(--border2);border-radius:100px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.chart-tab.ac{background:var(--blue-bg);color:var(--blue);border-color:#3b82f640}
+.chart-wrap{position:relative;height:200px;margin-bottom:10px}
+.chart-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cs{background:var(--surface2);border-radius:10px;padding:9px;text-align:center}
+.cs .cv{font-size:15px;font-weight:700;margin-bottom:2px}
+.cs .cl{font-size:10px;color:var(--muted)}
+.no-stream{font-size:13px;color:var(--dim);text-align:center;padding:40px 20px;line-height:1.6}
+.run-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:16px;margin-bottom:10px}
+.run-card.logged{border-color:#22c55e40;background:var(--green-bg)}
+.run-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.run-name{font-size:15px;font-weight:700}
+.run-source{font-size:11px;color:var(--muted)}
+.run-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.run-stat{text-align:center;background:var(--surface2);border-radius:8px;padding:8px 4px}
+.run-stat .rv{font-size:15px;font-weight:700;line-height:1;margin-bottom:2px}
+.run-stat .rl{font-size:10px;color:var(--muted)}
+.run-extra{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.run-extra-item{font-size:12px;color:var(--muted)}
+.run-extra-item span{color:var(--text);font-weight:600}
+.rpe-confirm{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.rc-btn{width:34px;height:34px;font-size:12px;font-weight:700;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.rc-btn:hover,.rc-btn.sl{background:var(--blue-bg);color:var(--blue);border-color:#3b82f640}
+.zone-bar{height:4px;border-radius:2px;margin-bottom:12px;background:var(--surface2);overflow:hidden}
+.zone-bar-fill{height:100%;border-radius:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:500px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.log-grid{grid-template-columns:1fr 1fr}.week-grid{grid-template-columns:repeat(2,1fr)}.tl-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="hdr">
+  <div>
+    <h1>Chicago Marathon 2026</h1>
+    <p id="subhdr">Oct 11 &middot; Sub-2:50 &middot; Loading...</p>
+  </div>
+  <div>
+    <div class="cd-n" id="dout">&mdash;</div>
+    <div class="cd-l">days to race</div>
+  </div>
+</div>
+
+<div class="sync-row">
+  <button class="sync-btn" onclick="syncAll()" id="sync-btn">
+    <span class="sync-icon" id="sync-icon">↻</span> Sync
+  </button>
+  <span class="sync-st" id="sync-st"></span>
+</div>
+
+<div id="flags"></div>
+
+<!-- RECOVERY -->
+<p class="sl">Whoop recovery</p>
+<div class="card accent-blue" id="rec-card">
+  <div class="rec-hero">
+    <div class="rec-ring" id="rec-ring">
+      <span class="score" id="rec-score">&mdash;</span>
+      <span class="score-l">score</span>
+    </div>
+    <div>
+      <div class="rec-title" id="rec-title">Loading...</div>
+      <div class="rec-sub" id="rec-sub">Sync to update</div>
+    </div>
+  </div>
+  <div class="progress-label"><span>Recovery signal</span><span id="rlb" style="font-weight:600"></span></div>
+  <div class="progress-bar"><div class="progress-fill" id="rfill" style="width:0%"></div></div>
+
+  <div class="g3">
+    <div class="m">
+      <div class="mv" id="hrv" style="color:#a855f7">&mdash;</div>
+      <div class="ml">HRV (ms)</div>
+      <div class="ms" id="hrv-s"></div>
+    </div>
+    <div class="m">
+      <div class="mv" id="rhr" style="color:#ef4444">&mdash;</div>
+      <div class="ml">Resting HR</div>
+      <div class="ms" id="rhr-s"></div>
+    </div>
+    <div class="m">
+      <div class="mv" id="strain" style="color:#f59e0b">&mdash;</div>
+      <div class="ml">Strain /21</div>
+      <div class="ms" id="kj-s" style="color:var(--dim)"></div>
+    </div>
+  </div>
+
+  <p class="sl" style="margin-bottom:10px">Sleep</p>
+  <div class="g4">
+    <div class="m4"><div class="mv" id="slp" style="color:var(--text)">&mdash;</div><div class="ml">total hrs</div></div>
+    <div class="m4"><div class="mv" id="slp-d" style="color:var(--blue)">&mdash;</div><div class="ml">deep hrs</div></div>
+    <div class="m4"><div class="mv" id="slp-r" style="color:var(--purple)">&mdash;</div><div class="ml">REM hrs</div></div>
+    <div class="m4"><div class="mv" id="slp-l" style="color:var(--muted)">&mdash;</div><div class="ml">light hrs</div></div>
+  </div>
+  <div class="g4">
+    <div class="m4"><div class="mv" id="slp-p" style="color:var(--green)">&mdash;</div><div class="ml">performance</div></div>
+    <div class="m4"><div class="mv" id="slp-e" style="color:var(--teal)">&mdash;</div><div class="ml">efficiency</div></div>
+    <div class="m4"><div class="mv" id="slp-c" style="color:var(--yellow)">&mdash;</div><div class="ml">consistency</div></div>
+    <div class="m4"><div class="mv" id="slp-rr" style="color:var(--muted)">&mdash;</div><div class="ml">resp rate</div></div>
+  </div>
+  <div class="g3" style="margin-bottom:12px">
+    <div class="m4"><div class="mv" id="slp-cy" style="color:var(--text)">&mdash;</div><div class="ml">cycles</div></div>
+    <div class="m4"><div class="mv" id="slp-di" style="color:var(--red)">&mdash;</div><div class="ml">disturbances</div></div>
+    <div class="m4"><div class="mv" id="slp-db" style="color:var(--yellow)">&mdash;</div><div class="ml">sleep debt hrs</div></div>
+  </div>
+
+  <p class="sl" style="margin-bottom:10px">Body</p>
+  <div class="g3">
+    <div class="m4"><div class="mv" id="spo2" style="color:var(--teal)">&mdash;</div><div class="ml">SpO2 %</div></div>
+    <div class="m4"><div class="mv" id="skin" style="color:var(--orange)">&mdash;</div><div class="ml">skin temp °C</div></div>
+    <div class="m4"><div class="mv" id="wkj" style="color:var(--muted)">&mdash;</div><div class="ml">kilojoules</div></div>
+  </div>
+</div>
+
+<!-- TRAINING LOAD -->
+<p class="sl">Training load (CTL/ATL/TSB)</p>
+<div class="card">
+  <div class="tl-grid">
+    <div class="tl-item">
+      <div class="tl-val" id="ctl" style="color:var(--blue)">&mdash;</div>
+      <div class="tl-lbl">CTL — Fitness</div>
+      <div class="tl-desc" style="color:var(--muted)">42-day avg</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-val" id="atl" style="color:var(--red)">&mdash;</div>
+      <div class="tl-lbl">ATL — Fatigue</div>
+      <div class="tl-desc" style="color:var(--muted)">7-day avg</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-val" id="tsb" style="color:var(--green)">&mdash;</div>
+      <div class="tl-lbl">TSB — Form</div>
+      <div class="tl-desc" id="tsb-desc" style="color:var(--muted)">CTL - ATL</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--dim);line-height:1.6;padding:10px;background:var(--surface2);border-radius:10px">
+    Positive TSB = fresh and ready. Negative TSB = accumulated fatigue. Peak form at slight negative (-10 to -5) after taper. Based on Banister impulse-response model.
+  </div>
+</div>
+
+<!-- MORNING CHECKIN -->
+<div id="checkin-wrap"></div>
+
+<!-- PLAN -->
+<p class="sl">Training plan — week <span id="wk-n">1</span> of 25</p>
+<div class="phase-wrap">
+  <div class="phase-track" id="phase-track"></div>
+  <div class="phase-lbls">
+    <div class="phase-lbl" id="pl0">Base</div>
+    <div class="phase-lbl" id="pl1">Aerobic</div>
+    <div class="phase-lbl" id="pl2">Race build</div>
+    <div class="phase-lbl" id="pl3">Taper</div>
+    <div class="phase-lbl" id="pl4">Race</div>
+  </div>
+</div>
+
+<!-- TODAY -->
+<p class="sl">Today's workout</p>
+<div class="card accent-blue" id="today-card">
+  <div class="tw-header">
+    <h3 id="tp-title">Loading...</h3>
+    <span class="pill blue" id="tp-pill">—</span>
+  </div>
+  <div class="tw-stats">
+    <div class="tw-s"><div class="v" id="tp-type" style="color:var(--blue)">—</div><div class="l">type</div></div>
+    <div class="tw-s"><div class="v" id="tp-mi" style="color:var(--green)">—</div><div class="l">target miles</div></div>
+    <div class="tw-s"><div class="v" id="tp-pace" style="color:var(--yellow)">—</div><div class="l">pace zone</div></div>
+  </div>
+  <div class="tw-desc" id="tp-desc"></div>
+</div>
+
+<!-- UPCOMING -->
+<p class="sl">Coming up</p>
+<div id="upcoming-wrap" style="margin-bottom:14px"></div>
+
+<!-- AI REC -->
+<p class="sl">AI recommendation</p>
+<div class="card" id="ai-card">
+  <div class="ai-hdr">
+    <h3 id="ai-title">Generating...</h3>
+    <span class="pill green" id="ai-badge">loading</span>
+  </div>
+  <div id="fw-wrap"></div>
+  <div class="ai-body" id="ai-body">Analyzing your recovery, training load, and history...</div>
+</div>
+
+<!-- THIS WEEK -->
+<p class="sl">This week</p>
+<div class="card">
+  <div class="week-grid">
+    <div class="wi"><div class="wv" id="wk-mi">&mdash;</div><div class="wl" id="wk-mi-l">miles logged</div></div>
+    <div class="wi"><div class="wv" id="wk-runs">&mdash;</div><div class="wl">runs done</div></div>
+    <div class="wi"><div class="wv" id="wk-rpe">&mdash;</div><div class="wl">avg RPE</div></div>
+    <div class="wi"><div class="wv" id="wk-pred">&mdash;</div><div class="wl">race prediction</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+    <div class="wi"><div class="wv" id="wk-avg-pace" style="font-size:18px">&mdash;</div><div class="wl">avg pace this week</div></div>
+    <div class="wi"><div class="wv" id="wk-tsb" style="font-size:18px">&mdash;</div><div class="wl">current form (TSB)</div></div>
+  </div>
+</div>
+
+<!-- LOG RUN -->
+<div style="height:1px;background:var(--border);margin:20px 0"></div>
+<p class="sl">Log today's run</p>
+<div id="todays-runs-wrap" style="margin-bottom:14px"></div>
+<div id="manual-log-wrap">
+  <div style="text-align:center;margin-bottom:10px">
+    <button onclick="toggleManualLog()" id="manual-toggle" style="background:none;border:1px solid var(--border2);border-radius:100px;padding:7px 16px;font-size:12px;color:var(--muted);cursor:pointer">+ Log manually</button>
+  </div>
+  <div id="manual-log" style="display:none">
+    <div class="card">
+      <div class="log-grid">
+        <div><label>Distance (mi)</label><input type="number" id="ld" step="0.01" placeholder="5.0" oninput="calcPace()"></div>
+        <div>
+          <label>Duration</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="ldur-h" placeholder="h" min="0" max="5" style="width:60px" oninput="calcPace()">
+            <input type="number" id="ldur-m" placeholder="min" min="0" max="59" oninput="calcPace()">
+            <input type="number" id="ldur-s" placeholder="sec" min="0" max="59" style="width:60px" oninput="calcPace()">
+          </div>
+        </div>
+        <div><label>Avg HR (bpm)</label><input type="number" id="lhr" placeholder="145"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;gap:20px;align-items:center">
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Pace</div><div style="font-size:22px;font-weight:700;color:var(--yellow)" id="calc-pace">—</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Duration</div><div style="font-size:16px;font-weight:600;color:var(--text)" id="calc-dur">—</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Zone</div><div style="font-size:13px;font-weight:600" id="calc-zone">—</div></div>
+      </div>
+      <div class="log-grid">
+        <div><label>Elevation (ft)</label><input type="number" id="lelev" placeholder="120"></div>
+        <div><label>Cadence (spm)</label><input type="number" id="lcad" placeholder="172"></div>
+        <div><label>Weight (lbs)</label><input type="number" id="lwt" placeholder="175" step="0.1"></div>
+      </div>
+      <label style="margin-bottom:8px">Workout type</label>
+      <div class="type-row">
+        <button class="tb" onclick="selWT(this,'easy')">Easy</button>
+        <button class="tb" onclick="selWT(this,'tempo')">Tempo</button>
+        <button class="tb" onclick="selWT(this,'marathon_pace')">Marathon pace</button>
+        <button class="tb" onclick="selWT(this,'long')">Long run</button>
+        <button class="tb" onclick="selWT(this,'interval')">Intervals</button>
+        <button class="tb" onclick="selWT(this,'recovery')">Recovery</button>
+      </div>
+      <label style="margin-bottom:8px">RPE (1&ndash;10)</label>
+      <div class="rpe-row" id="manual-rpe-row">
+        <button class="rb" onclick="selRPE(this,1)">1</button>
+        <button class="rb" onclick="selRPE(this,2)">2</button>
+        <button class="rb" onclick="selRPE(this,3)">3</button>
+        <button class="rb" onclick="selRPE(this,4)">4</button>
+        <button class="rb" onclick="selRPE(this,5)">5</button>
+        <button class="rb" onclick="selRPE(this,6)">6</button>
+        <button class="rb" onclick="selRPE(this,7)">7</button>
+        <button class="rb" onclick="selRPE(this,8)">8</button>
+        <button class="rb" onclick="selRPE(this,9)">9</button>
+        <button class="rb" onclick="selRPE(this,10)">10</button>
+      </div>
+      <label style="margin-bottom:8px">Notes</label>
+      <textarea id="lnotes" placeholder="How did it feel? Any tightness, HR issues, wins?" style="margin-bottom:12px"></textarea>
+      <button class="btn btn-primary" onclick="submitLog()">Save run &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- RUN ANALYSIS -->
+<div style="height:1px;background:var(--border);margin:20px 0"></div>
+<p class="sl">Last run analysis</p>
+<div class="chart-card" id="run-chart-card">
+  <div class="chart-header">
+    <h3 id="run-chart-title">Loading...</h3>
+    <div class="chart-tabs">
+      <button class="chart-tab ac" onclick="switchChart('hr',this)">Heart Rate</button>
+      <button class="chart-tab" onclick="switchChart('pace',this)">Pace</button>
+      <button class="chart-tab" onclick="switchChart('both',this)">Both</button>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="run-chart"></canvas>
+  </div>
+  <div class="chart-stats">
+    <div class="cs"><div class="cv" id="cs-avghr" style="color:var(--red)">—</div><div class="cl">avg HR</div></div>
+    <div class="cs"><div class="cv" id="cs-maxhr" style="color:var(--orange)">—</div><div class="cl">max HR</div></div>
+    <div class="cs"><div class="cv" id="cs-avgpace" style="color:var(--yellow)">—</div><div class="cl">avg pace</div></div>
+    <div class="cs"><div class="cv" id="cs-best" style="color:var(--green)">—</div><div class="cl">best mile</div></div>
+  </div>
+</div>
+
+<!-- FITNESS SNAPSHOT -->
+<div style="height:1px;background:var(--border);margin:20px 0"></div>
+<p class="sl">Fitness snapshot</p>
+<div class="snap-grid">
+  <div class="snap"><div class="sl2">HRV baseline</div><div class="sv" style="color:var(--purple)">68.1 ms</div></div>
+  <div class="snap"><div class="sl2">Avg recovery</div><div class="sv" style="color:var(--green)">57 / 100</div></div>
+  <div class="snap"><div class="sl2">Avg deep sleep</div><div class="sv" style="color:var(--blue)">1.38 hrs</div></div>
+  <div class="snap"><div class="sl2">Peak week (90d)</div><div class="sv" style="color:var(--yellow)">32.1 mi</div></div>
+  <div class="snap"><div class="sl2">Total runs (90d)</div><div class="sv">56 runs</div></div>
+  <div class="snap"><div class="sl2">Total miles (90d)</div><div class="sv">276.5 mi</div></div>
+</div>
+
+<!-- PACE ZONES -->
+<p class="sl">Daniels VDOT 54 pace zones</p>
+<div class="card">
+  <div class="pace-row"><div><div class="pz" style="color:var(--green)">E — Easy</div><div class="pd">Base volume, recovery (80% of training)</div></div><div class="pv">8:00–8:45/mi</div></div>
+  <div class="pace-row"><div><div class="pz" style="color:var(--blue)">M — Marathon</div><div class="pd">Race pace, long run segments</div></div><div class="pv">6:30–6:45/mi</div></div>
+  <div class="pace-row"><div><div class="pz" style="color:var(--yellow)">T — Threshold</div><div class="pd">Lactate threshold, comfortably hard</div></div><div class="pv">6:05–6:15/mi</div></div>
+  <div class="pace-row"><div><div class="pz" style="color:var(--red)">I — Interval</div><div class="pd">VO2 max, used sparingly (Seiler 20%)</div></div><div class="pv">5:40–5:50/mi</div></div>
+  <div class="pace-row"><div><div class="pz" style="color:var(--purple)">R — Repetition</div><div class="pd">Speed & economy, rare</div></div><div class="pv">5:10–5:20/mi</div></div>
+</div>
+
+<!-- HISTORY -->
+<p class="sl">Coaching history</p>
+<div id="hist-list"><div style="font-size:13px;color:var(--dim);text-align:center;padding:20px">Loading history...</div></div>
+
+</div>
+
+<!-- CHAT -->
+<div class="chat-wrap">
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-ph">
+      <span>CoachClaude</span>
+      <button onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+  </div>
+  <div class="chat-bar">
+    <input type="text" id="chat-input" placeholder="Ask CoachClaude anything about your training..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-toggle" onclick="toggleChat()">Coach</button>
+    <button class="chat-send" onclick="sendChat()" id="chat-send">Send</button>
+  </div>
+</div>
+
+<script>
+const SB='https://pbeutvoyrvxxrsjtqtlm.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZXV0dm95cnZ4eHJzanRxdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NjU2NzcsImV4cCI6MjA5MjA0MTY3N30.fQ4kFDFv6aH1b4TuCdVyeyar5619QOcOXfXbpRJMqhE';
+const RW='https://health-receiver-production.up.railway.app';
+const RACE=new Date('2026-10-11');
+const HRV_BASE=68.1,RHR_BASE=51.8;
+
+let selRPEVal=null,selWTVal=null,chatHistory=[],chatOpen=false;
+let D={today:{},plan:{},log:[],history:[]};
+
+const $=id=>document.getElementById(id);
+function selRPE(b,v){selRPEVal=v;document.querySelectorAll('.rb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
+function selWT(b,v){selWTVal=v;document.querySelectorAll('.tb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
+
+async function get(table,q){
+  const r=await fetch(`${SB}/rest/v1/${table}?${q}`,{headers:{apikey:SK,Authorization:`Bearer ${SK}`}});
+  if(!r.ok)throw new Error(r.status);return r.json();
+}
+async function post(table,body,conflict){
+  const r=await fetch(`${SB}/rest/v1/${table}?on_conflict=${conflict}`,{
+    method:'POST',
+    headers:{apikey:SK,Authorization:`Bearer ${SK}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(body)
+  });return r.ok;
+}
+
+function daysLeft(){const t=new Date();t.setHours(0,0,0,0);return Math.ceil((RACE-t)/864e5)}
+function today(){
+  const c=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
+}
+function weekStart(){
+  const c=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  const d=c.getDay();c.setDate(c.getDate()-(d===0?6:d-1));
+  return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
+}
+function pace(t){return{easy:'8:00–8:45/mi',medium:'8:00–8:30/mi',long:'8:00–8:45/mi',tempo:'6:05–6:15/mi',marathon_pace:'6:30–6:45/mi',interval:'5:40–5:50/mi',recovery:'9:00+/mi',rest:'Rest',race:'6:30/mi'}[t]||'—'}
+function wk(){const s=new Date('2026-04-20');const t=new Date();t.setHours(0,0,0,0);return Math.max(1,Math.ceil((t-s)/6048e5)+1)}
+function fmtPace(secs){if(!secs||secs>1200)return'—';const m=Math.floor(secs/60),s=Math.round(secs%60);return`${m}:${String(s).padStart(2,'0')}/mi`}
+function fmtDur(mins){if(!mins)return'—';const h=Math.floor(mins/60),m=Math.floor(mins%60),s=Math.round((mins%1)*60);return h>0?`${h}h ${m}m`:`${m}m${s>0?' '+s+'s':''}`}
+
+function buildPhase(w){
+  const tr=$('phase-track');tr.innerHTML='';
+  for(let i=1;i<=25;i++){const d=document.createElement('div');d.className='phase-dot'+(i<w?' done':i===w?' active':'');tr.appendChild(d)}
+  ['pl0','pl1','pl2','pl3','pl4'].forEach(id=>$(id)?.classList.remove('ac'));
+  if(w<=4)$('pl0')?.classList.add('ac');
+  else if(w<=12)$('pl1')?.classList.add('ac');
+  else if(w<=19)$('pl2')?.classList.add('ac');
+  else if(w<=23)$('pl3')?.classList.add('ac');
+  else $('pl4')?.classList.add('ac');
+}
+
+async function loadToday(){
+  const td=today();
+  const[health,plan,tl]=await Promise.all([
+    get('health_history',`select=*&date=eq.${td}&limit=1`).catch(()=>[]),
+    get('training_plan',`select=*&workout_date=eq.${td}&limit=1`).catch(()=>[]),
+    get('training_log',`select=ctl,atl,tsb&log_date=lte.${td}&order=log_date.desc&limit=1`).catch(()=>[])
+  ]);
+  const h=health?.[0]||{};const p=plan?.[0]||{};const t=tl?.[0]||{};
+  D.today=h;D.plan=p;
+  const w=wk();
+  $('dout').textContent=daysLeft();
+  $('wk-n').textContent=w;
+  $('subhdr').textContent=`Oct 11 · Sub-2:50 · Week ${w} of 25 · ${p.phase||'Base Rebuild'}`;
+  buildPhase(w);
+
+  // CTL/ATL/TSB
+  const ctl=t.ctl,atl=t.atl,tsb=t.tsb;
+  $('ctl').textContent=ctl?Math.round(ctl):'—';
+  $('atl').textContent=atl?Math.round(atl):'—';
+  $('tsb').textContent=tsb?Math.round(tsb):'—';
+  $('tsb').style.color=tsb?(tsb>0?'var(--green)':tsb>-15?'var(--yellow)':'var(--red)'):'var(--muted)';
+  $('tsb-desc').textContent=tsb?(tsb>5?'Fresh & ready':tsb>-5?'Optimal form':tsb>-15?'Slight fatigue':'Heavy fatigue'):'CTL - ATL';
+  // Also show TSB in week section
+  const wkTsb=$('wk-tsb');
+  if(wkTsb&&tsb){wkTsb.textContent=(tsb>0?'+':'')+Math.round(tsb);wkTsb.style.color=tsb>0?'var(--green)':tsb>-15?'var(--yellow)':'var(--red)'}
+
+  // Recovery
+  const hrv=h.hrv_ms,rec=h.whoop_recovery_score,rhr=h.resting_hr;
+  const deep=h.sleep_deep_hrs,rem=h.sleep_rem_hrs,slp=h.sleep_total_hrs,strain=h.whoop_strain;
+
+  const ring=$('rec-ring'),scoreEl=$('rec-score');
+  scoreEl.textContent=rec?Math.round(rec):'—';
+  let rc='var(--dim)',rl='No data',rs='Hit sync to update';
+  if(rec>=67){rc='var(--green)';rl='Ready to perform';rs=`Strong recovery · HRV ${hrv?hrv.toFixed(1)+'ms':'—'}`}
+  else if(rec>=34){rc='var(--yellow)';rl='Moderate recovery';rs='Train with awareness today'}
+  else if(rec){rc='var(--red)';rl='Low recovery';rs='Easy day or rest recommended'}
+  ring.style.borderColor=rc;scoreEl.style.color=rc;
+  $('rec-title').textContent=rl;$('rec-sub').textContent=rs;
+
+  const score=rec||(hrv?Math.round((hrv/HRV_BASE)*65):50);
+  let pct,color,label;
+  if(score>=80){pct=95;color='var(--green)';label='Excellent — execute as planned'}
+  else if(score>=60){pct=75;color='#84cc16';label='Good — train as planned'}
+  else if(score>=40){pct=50;color='var(--yellow)';label='Moderate — reduce intensity'}
+  else{pct=25;color='var(--red)';label='Low — easy day'}
+  $('rfill').style.cssText=`width:${pct}%;background:${color}`;
+  $('rlb').textContent=label;$('rlb').style.color=color;
+
+  $('hrv').textContent=hrv?hrv.toFixed(1):'—';
+  $('hrv-s').textContent=hrv?`${hrv>=HRV_BASE?'↑ above':'↓ below'} 68.1 baseline`:'sync to update';
+  $('hrv-s').style.color=hrv?(hrv>=HRV_BASE?'var(--green)':'var(--red)'):'var(--dim)';
+  $('rhr').textContent=rhr?Math.round(rhr):'—';
+  $('rhr-s').textContent=rhr?`${rhr<=RHR_BASE?'↓':'↑'} vs 51.8 avg`:'sync to update';
+  $('rhr-s').style.color=rhr?(rhr<=RHR_BASE?'var(--green)':'var(--red)'):'var(--dim)';
+  $('strain').textContent=strain?strain.toFixed(1):'—';
+  $('kj-s').textContent=h.whoop_kilojoules?`${Math.round(h.whoop_kilojoules)} kJ`:'yesterday';
+
+  // Sleep
+  $('slp').textContent=slp?slp.toFixed(1):'—';
+  $('slp-d').textContent=deep?deep.toFixed(1):'—';
+  $('slp-r').textContent=rem?rem.toFixed(1):'—';
+  $('slp-l').textContent=h.sleep_light_hrs?h.sleep_light_hrs.toFixed(1):'—';
+  $('slp-p').textContent=h.whoop_sleep_performance?Math.round(h.whoop_sleep_performance)+'%':'—';
+  $('slp-e').textContent=h.sleep_efficiency_pct?Math.round(h.sleep_efficiency_pct)+'%':'—';
+  $('slp-c').textContent=h.sleep_consistency_pct?Math.round(h.sleep_consistency_pct)+'%':'—';
+  $('slp-rr').textContent=h.sleep_respiratory_rate?h.sleep_respiratory_rate.toFixed(1):'—';
+  $('slp-cy').textContent=h.sleep_cycles??'—';
+  $('slp-di').textContent=h.sleep_disturbances??'—';
+  $('slp-db').textContent=h.sleep_needed_from_debt_hrs?h.sleep_needed_from_debt_hrs.toFixed(1):'—';
+  $('spo2').textContent=h.spo2_percentage?h.spo2_percentage.toFixed(1)+'%':'—';
+  $('skin').textContent=h.skin_temp_celsius?h.skin_temp_celsius.toFixed(1):'—';
+  $('wkj').textContent=h.whoop_kilojoules?Math.round(h.whoop_kilojoules):'—';
+
+  // Flags
+  const flags=[];
+  if(hrv&&hrv<HRV_BASE*0.85)flags.push({t:'warning',m:`HRV ${hrv.toFixed(1)}ms is ${((1-hrv/HRV_BASE)*100).toFixed(0)}% below your personal baseline — Seiler polarized model signals reduced intensity`});
+  if(rhr&&rhr>RHR_BASE+5)flags.push({t:'warning',m:`Resting HR elevated (${Math.round(rhr)} vs ${RHR_BASE} avg) — Pfitzinger protocol: reduce today's load`});
+  if(deep&&deep<0.8)flags.push({t:'warning',m:`Deep sleep low (${deep.toFixed(1)}h) — physical recovery incomplete. Huberman: optimal >1.5h for athletic recovery`});
+  if(h.spo2_percentage&&h.spo2_percentage<95)flags.push({t:'red',m:`SpO2 low at ${h.spo2_percentage.toFixed(1)}% — monitor for illness, altitude effect, or overtraining`});
+  if(hrv&&hrv>=HRV_BASE*1.1&&rec>=80)flags.push({t:'green',m:`HRV ${hrv.toFixed(1)}ms is above baseline and recovery is ${Math.round(rec)}/100 — you're primed. Consider pushing the upper end of today's pace range`});
+  if(h.sleep_disturbances&&h.sleep_disturbances>15)flags.push({t:'warning',m:`High sleep disturbances (${h.sleep_disturbances}) — fragmented sleep reduces recovery quality even with adequate hours`});
+  $('flags').innerHTML=flags.map(f=>`<div class="flag ${f.t==='red'?'red':f.t==='green'?'green':''}">${f.t==='warning'?'⚠':'✓'} ${f.m}</div>`).join('');
+
+  // Today's plan
+  $('tp-title').textContent=p.week_description||'Rest day';
+  $('tp-type').textContent=(p.workout_type||'rest').replace(/_/g,' ');
+  $('tp-mi').textContent=p.target_miles>0?`${p.target_miles} mi`:'Rest';
+  $('tp-pace').textContent=pace(p.workout_type);
+  $('tp-desc').textContent=p.target_pace_description||'';
+  const pill=$('tp-pill');
+  pill.textContent=p.is_quality?'Quality session':'Base training';
+  pill.className='pill '+(p.is_quality?'yellow':'blue');
+
+  // Prefill HR from Whoop
+  if(h.hr_avg)$('lhr').placeholder=`${Math.round(h.hr_avg)} (from Whoop)`;
+
+  await renderCheckin();
+}
+
+async function loadWeekStats(){
+  const ws=weekStart();
+  const[logs,hist]=await Promise.all([
+    get('training_log',`select=*&log_date=gte.${ws}&order=log_date.desc&limit=14`).catch(()=>[]),
+    get('health_history',`select=run_distance_miles,run_duration_minutes,date&date=gte.${ws}&order=date.desc&limit=7`).catch(()=>[])
+  ]);
+  D.log=logs||[];
+  const wl=(logs||[]).filter(l=>l.run_distance_miles||l.run_duration_minutes);
+  const wmi=wl.reduce((s,l)=>s+(l.run_distance_miles||0),0);
+  const avgRPE=wl.length?(wl.reduce((s,l)=>s+(l.run_rpe||0),0)/wl.length).toFixed(1):'—';
+  const pt=D.plan?.week_total_miles||0;
+  $('wk-mi').textContent=wmi.toFixed(1);
+  $('wk-runs').textContent=wl.length;
+  $('wk-rpe').textContent=avgRPE;
+  $('wk-mi-l').textContent=pt?`of ${pt} mi target`:'miles this week';
+
+  // Calculate avg pace this week
+  const runsWithPace=wl.filter(l=>l.run_distance_miles>0&&l.run_duration_minutes>0);
+  if(runsWithPace.length){
+    const avgPaceSecs=runsWithPace.reduce((s,l)=>s+((l.run_duration_minutes*60)/l.run_distance_miles),0)/runsWithPace.length;
+    const existingEl=$('wk-avg-pace');
+    if(existingEl)existingEl.textContent=fmtPace(avgPaceSecs);
+  }
+
+  const w=wk();
+  $('wk-pred').textContent=w<3?'building...':wmi>22?'2:51':wmi>15?'2:53':wmi>8?'2:55':'2:58';
+
+  // Prefill last run from health_history
+  const lr=(hist||[]).find(h=>h.run_distance_miles>0);
+  if(lr&&!(logs||[]).find(l=>l.log_date===lr.date&&l.run_distance_miles)){
+    $('ld').value=lr.run_distance_miles.toFixed(2);
+    $('ld').style.borderColor='var(--blue)';
+    if(lr.run_duration_minutes)$('ldur').value=lr.run_duration_minutes;
+  }
+  if(new Date().getDay()===0)renderWeeklyCheckin(logs);
+}
+
+async function loadHistory(){
+  const since=new Date();since.setDate(since.getDate()-14);
+  const data=await get('training_log',`select=*&log_date=gte.${since.toISOString().split('T')[0]}&order=log_date.desc&limit=14`).catch(()=>[]);
+  D.history=data||[];
+  const c=$('hist-list');
+  if(!data?.length){c.innerHTML='<div style="font-size:13px;color:var(--dim);text-align:center;padding:20px">No history yet — start logging your runs.</div>';return}
+  c.innerHTML=data.map(l=>{
+    const d=new Date(l.log_date+'T12:00:00');
+    const ds=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const hasLog=l.run_distance_miles||l.run_duration_minutes;
+    const isCI=l.log_type==='weekly_checkin';
+    const isMCI=l.log_type==='morning_checkin';
+    const logStr=hasLog?[
+      l.run_distance_miles?l.run_distance_miles.toFixed(1)+'mi':'',
+      l.run_duration_minutes?fmtDur(l.run_duration_minutes):'',
+      l.run_distance_miles&&l.run_duration_minutes?'@ '+fmtPace((l.run_duration_minutes*60)/l.run_distance_miles):'',
+      `RPE ${l.run_rpe||'?'}/10`,
+      l.workout_type?'· '+l.workout_type.replace(/_/g,' '):'',
+      l.run_notes?'· '+l.run_notes:''
+    ].filter(Boolean).join(' '):null;
+    const ciStr=isCI?('Feel '+l.weekly_feel+'/10 · Stress '+l.weekly_stress+'/10'+(l.weekly_pain?' · '+l.weekly_pain:'')+(l.weekly_notes?' · '+l.weekly_notes:'')):null;
+    const mciStr=isMCI?`Fatigue ${l.subjective_fatigue}/10 · Soreness ${l.subjective_soreness}/10 · Nutrition ${l.subjective_nutrition}/10`:null;
+    return`<div class="hc">
+      <div class="hh">
+        <span class="hd">${ds}</span>
+        <span class="hbg ${isCI||isMCI?'ci':hasLog?'lg':'ul'}">${isCI?'check-in':isMCI?'morning':hasLog?'logged':'no log'}</span>
+      </div>
+      <div class="ht">${l.recommendation_title||(isCI?'Weekly check-in':isMCI?'Morning check-in':'Workout')}</div>
+      ${logStr?`<div class="hl">${logStr}</div>`:''}
+      ${ciStr?`<div class="hl" style="font-style:italic">${ciStr}</div>`:''}
+      ${mciStr?`<div class="hl">${mciStr}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function resetCheckin(){
+  const wrap=$('checkin-wrap');
+  // Delete today's checkin from Supabase and re-render form
+  fetch(`${SB}/rest/v1/training_log?log_date=eq.${today()}&log_type=eq.morning_checkin`,{
+    method:'DELETE',
+    headers:{apikey:SK,Authorization:`Bearer ${SK}`,Prefer:'return=minimal'}
+  }).then(()=>{
+    D.history=D.history.filter(l=>!(l.log_date===today()&&l.log_type==='morning_checkin'));
+    showCheckinForm();
+  });
+}
+
+function showCheckinForm(){
+  const wrap=$('checkin-wrap');
+  showCheckinForm();
+}
+
+async function renderCheckin(){
+  const td=today();
+  const wrap=$('checkin-wrap');
+
+  // Always check Supabase directly — don't rely on cached history
+  const existing=await get('training_log',
+    `select=log_date,subjective_fatigue,subjective_soreness,subjective_motivation,subjective_nutrition,subjective_stress,alcohol_units,body_weight_lbs,morning_notes&log_date=eq.${td}&log_type=eq.morning_checkin&limit=1`
+  ).catch(()=>[]);
+
+  if(existing?.[0]){
+    const c=existing[0];
+    const items=[
+      c.subjective_fatigue?`Fatigue ${c.subjective_fatigue}/10`:'',
+      c.subjective_soreness?`Soreness ${c.subjective_soreness}/10`:'',
+      c.subjective_motivation?`Motivation ${c.subjective_motivation}/10`:'',
+      c.subjective_nutrition?`Nutrition ${c.subjective_nutrition}/10`:'',
+      c.subjective_stress?`Stress ${c.subjective_stress}/10`:'',
+      c.alcohol_units?`Alcohol ${c.alcohol_units} units`:'',
+      c.body_weight_lbs?`Weight ${c.body_weight_lbs} lbs`:'',
+      c.morning_notes?`"${c.morning_notes}"`:'',
+    ].filter(Boolean);
+    wrap.innerHTML=`<div class="flag green" style="margin-bottom:14px">
+      ✓ Morning check-in submitted · ${items.join(' · ')}
+      <div style="margin-top:6px"><button onclick="resetCheckin()" style="background:none;border:none;color:var(--green);font-size:11px;cursor:pointer;text-decoration:underline;opacity:.7">Edit</button></div>
+    </div>`;
+    return;
+  }
+
+  showCheckinForm();
+}
+
+function renderWeeklyCheckin(logs){
+  const td=today();
+  if((logs||[]).find(l=>l.log_type==='weekly_checkin'&&l.log_date===td))return;
+  const wrap=$('checkin-wrap');
+  wrap.innerHTML=(wrap.innerHTML||'')+`
+    <p class="sl" style="margin-top:14px">Sunday weekly check-in</p>
+    <div class="checkin-card">
+      <h3>How was your week?</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><label>Overall feel (1–10)</label><input type="number" id="wf" min="1" max="10" placeholder="7"></div>
+        <div><label>Life stress (1–10)</label><input type="number" id="ws2" min="1" max="10" placeholder="4"></div>
+      </div>
+      <div style="margin-bottom:10px"><label>Pain or niggles?</label><input type="text" id="wp" placeholder="None / left knee / shin tightness"></div>
+      <div style="margin-bottom:14px"><label>Anything your coach should know?</label><textarea id="wn" placeholder="Felt great all week / slept poorly / travel next week / race goals changing..."></textarea></div>
+      <button class="btn btn-green" onclick="submitWeekly()">Submit weekly check-in &rarr;</button>
+    </div>`;
+}
+
+async function submitCheckin(){
+  const td=today();
+  const fat=parseInt($('s-fat')?.value||5);
+  const sor=parseInt($('s-sor')?.value||5);
+  const mot=parseInt($('s-mot')?.value||7);
+  const nut=parseInt($('s-nut')?.value||7);
+  const str=parseInt($('s-str')?.value||3);
+  const alc=parseFloat($('ci-alc')?.value||0);
+  const wt=parseFloat($('ci-wt')?.value||0);
+  const notes=$('ci-notes')?.value||'';
+
+  await Promise.all([
+    post('training_log',{log_date:td,log_type:'morning_checkin',subjective_fatigue:fat,subjective_soreness:sor,subjective_motivation:mot,subjective_nutrition:nut,subjective_stress:str,alcohol_units:alc||null,body_weight_lbs:wt||null,morning_notes:notes||null,recommendation_title:'Morning check-in'},'log_date'),
+    post('health_history',{date:td,subjective_fatigue:fat,subjective_soreness:sor,subjective_nutrition:nut,subjective_stress:str,alcohol_units:alc||null,body_weight_lbs:wt||null,morning_notes:notes||null},'date')
+  ]);
+
+  await loadHistory();
+  await renderCheckin();
+  await generateRec('Morning check-in: fatigue '+fat+'/10, soreness '+sor+'/10, motivation '+mot+'/10, nutrition '+nut+'/10, stress '+str+'/10'+(alc?', alcohol '+alc+' units last night':'')+(wt?', weight '+wt+'lbs':'')+(notes?', notes: '+notes:''));
+}
+
+async function submitWeekly(){
+  const td=today();
+  const feel=$('wf')?.value,stress=$('ws2')?.value,pain=$('wp')?.value,notes=$('wn')?.value;
+  await post('training_log',{log_date:td,log_type:'weekly_checkin',weekly_feel:feel?parseInt(feel):null,weekly_stress:stress?parseInt(stress):null,weekly_pain:pain||null,weekly_notes:notes||null,recommendation_title:'Weekly check-in'},'log_date');
+  $('checkin-wrap').innerHTML='<div class="flag green" style="margin-bottom:14px">✓ Weekly check-in saved. Your coach will use this for next week\'s plan.</div>';
+  await loadHistory();
+  await generateRec('Weekly check-in: feel '+feel+'/10, stress '+stress+'/10'+(pain?', pain: '+pain:'')+(notes?', notes: '+notes:''));
+}
+
+function buildContext(){
+  const h=D.today||{},p=D.plan||{},w=wk();
+  const wl=D.log.filter(l=>l.run_distance_miles||l.run_duration_minutes);
+  const wmi=wl.reduce((s,l)=>s+(l.run_distance_miles||0),0).toFixed(1);
+  const mci=D.history.find(l=>l.log_type==='morning_checkin'&&l.log_date===today());
+
+  return`ATHLETE: Chicago Marathon Oct 11 2026, sub-2:50 (VDOT 54). First marathon. Military/special ops background — mentally tough, may push through fatigue. Week ${w}/25, phase: ${p.phase||'Base Rebuild'}.
+BASELINES: HRV 68.1ms, RHR 51.8bpm, avg deep sleep 1.38hrs, avg recovery 57/100, peak week 32.1mi.
+
+BIOMETRICS TODAY:
+- Whoop recovery: ${h.whoop_recovery_score?Math.round(h.whoop_recovery_score)+'/100':'no data'}
+- HRV: ${h.hrv_ms?h.hrv_ms.toFixed(1)+'ms ('+((h.hrv_ms/68.1-1)*100).toFixed(0)+'% vs baseline)':'no data'}
+- Resting HR: ${h.resting_hr?Math.round(h.resting_hr)+' bpm':'no data'}
+- Yesterday strain: ${h.whoop_strain?h.whoop_strain.toFixed(1)+'/21':'no data'}
+- Sleep: ${h.sleep_total_hrs?h.sleep_total_hrs.toFixed(1)+'h total':'no data'} | Deep: ${h.sleep_deep_hrs?h.sleep_deep_hrs.toFixed(1)+'h':'?'} | REM: ${h.sleep_rem_hrs?h.sleep_rem_hrs.toFixed(1)+'h':'?'} | Efficiency: ${h.sleep_efficiency_pct?Math.round(h.sleep_efficiency_pct)+'%':'?'} | Disturbances: ${h.sleep_disturbances??'?'}
+- SpO2: ${h.spo2_percentage?h.spo2_percentage.toFixed(1)+'%':'no data'} | Skin temp: ${h.skin_temp_celsius?h.skin_temp_celsius.toFixed(1)+'°C':'no data'}
+
+MORNING CHECK-IN: ${mci?('Fatigue '+mci.subjective_fatigue+'/10, soreness '+mci.subjective_soreness+'/10, motivation '+mci.subjective_motivation+'/10, nutrition '+mci.subjective_nutrition+'/10, stress '+mci.subjective_stress+'/10'+(mci.alcohol_units?', alcohol '+mci.alcohol_units+' units':'')+(mci.body_weight_lbs?', weight '+mci.body_weight_lbs+'lbs':'')+(mci.morning_notes?', notes: '+mci.morning_notes:'')):'Not submitted yet'}
+
+TRAINING PLAN TODAY: ${p.workout_type||'easy'} ${p.target_miles||0}mi @ ${pace(p.workout_type)} | Week target: ${p.week_total_miles||0}mi | Logged so far: ${wmi}mi
+
+TRAINING LOG (last 10 sessions):
+${D.history.length?D.history.slice(0,10).map(l=>{
+  const d=new Date(l.log_date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  if(l.log_type==='weekly_checkin')return`${d}: Weekly check-in — feel ${l.weekly_feel}/10, stress ${l.weekly_stress}/10${l.weekly_pain?', pain: '+l.weekly_pain:''}${l.weekly_notes?', notes: '+l.weekly_notes:''}`;
+  if(l.log_type==='morning_checkin')return`${d}: Morning check-in — fatigue ${l.subjective_fatigue}/10, soreness ${l.subjective_soreness}/10, nutrition ${l.subjective_nutrition}/10`;
+  const logged=l.run_distance_miles||l.run_duration_minutes?`${l.run_distance_miles?l.run_distance_miles.toFixed(1)+'mi':''} ${l.run_duration_minutes?l.run_duration_minutes+'min':''} RPE ${l.run_rpe||'?'}/10 ${l.workout_type||''} ${l.run_notes||''}`.trim():'not logged';
+  return`${d}: "${l.recommendation_title||'workout'}". ${logged}`;
+}).join('\n'):'No history yet — this is the start of the program.'}`;
+}
+
+async function generateRec(extra=''){
+  const body=$('ai-body'),title=$('ai-title'),badge=$('ai-badge');
+  title.textContent='Generating...';
+  body.textContent='Analyzing recovery, training load, morning check-in, and full history...';
+
+  const h=D.today||{},p=D.plan||{},w=wk();
+  const wl=D.log.filter(l=>l.run_distance_miles||l.run_duration_minutes);
+  const wmi=wl.reduce((s,l)=>s+(l.run_distance_miles||0),0).toFixed(1);
+
+  const prompt=`You are an elite marathon coach. Your coaching synthesizes:
+- Jack Daniels' Running Formula (VDOT 54 pace zones: E=8:00-8:45, M=6:30-6:45, T=6:05-6:15, I=5:40-5:50/mi)
+- Pete Pfitzinger's Advanced Marathoning (periodization, medium-long runs, threshold work)
+- Stephen Seiler's 80/20 polarized training (80% easy, 20% hard — enforce this ruthlessly)
+- HRV-guided training (Wegerif): >15% HRV drop = reduce load; use personal baseline not population norms
+- Andrew Huberman's sleep science (deep sleep = physical recovery, REM = neural; <1h deep = compromised recovery)
+- Banister impulse-response model for CTL/ATL/TSB training load
+
+${buildContext()}
+${extra?'\nADDITIONAL CONTEXT: '+extra:''}
+
+IMPORTANT COACHING NOTES:
+- Military background: athlete may under-report fatigue and push through warning signs. Weight objective data heavily.
+- This is week ${w} of 25. ${w<=4?'Base rebuild — no quality work, all easy miles, let aerobic system re-establish.':w<=12?'Aerobic development — introduce quality carefully, protect easy day intensity.':w<=19?'Race-specific build — specific marathon pace work, protect recovery days.':'Taper — trust the fitness, resist urge to add volume.'}
+- Seiler 80/20: if athlete is doing quality today, ALL other days this week should be genuinely easy (zone 1-2).
+
+Format your response EXACTLY like this (no markdown, no asterisks):
+TITLE: [specific workout name, max 7 words]
+STATUS: [GREEN / YELLOW / RED]
+FRAMEWORK: [single sentence: which framework is primary driver and why]
+RECOMMENDATION:
+[Paragraph 1: Exact workout prescription. Distance, pace, HR targets, structure. Be specific — "run 5 miles at 8:15-8:30/mi, HR below 140bpm" not "run easy".]
+[Paragraph 2: Recovery rationale. Cite exact biometric values. Why this specific load today given the data.]
+[Paragraph 3: Execution cues. What to watch for. When to cut short. HR drift thresholds. How effort should feel.]
+[Paragraph 4: Strategic context. How this fits the 25-week build. What it unlocks for future weeks.]`;
+
+  try{
+    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'';
+    const tm=text.match(/TITLE:\s*(.+)/),sm=text.match(/STATUS:\s*(\w+)/),fm=text.match(/FRAMEWORK:\s*(.+)/),rm=text.match(/RECOMMENDATION:\s*([\s\S]+)/);
+    const rt=tm?.[1]?.trim()||"Today's workout",status=sm?.[1]?.trim()||'GREEN',fw=fm?.[1]?.trim()||'',rec=rm?.[1]?.trim()||text;
+    title.textContent=rt;body.textContent=rec;
+    $('fw-wrap').innerHTML=fw?`<div class="fw-tag">Framework: ${fw}</div>`:'';
+    badge.textContent=status==='GREEN'?'Train as planned':status==='YELLOW'?'Reduce intensity':'Easy day';
+    badge.className='pill '+(status==='GREEN'?'green':status==='YELLOW'?'yellow':'red');
+    await post('training_log',{log_date:today(),recommendation_title:rt,recommendation_body:rec,recovery_status:status,rhr_today:D.today.resting_hr||null,sleep_hours:D.today.sleep_total_hrs||null,weekly_miles_at_log:parseFloat(wmi),log_type:'daily_run'},'log_date');
+  }catch(e){title.textContent='Connection error';body.textContent='Check connection and refresh.'}
+}
+
+async function loadUpcoming(){
+  const td=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  const days=[];
+  for(let i=1;i<=2;i++){const d=new Date(td);d.setDate(d.getDate()+i);const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');days.push({date:ds,label:i===1?'Tomorrow':d.toLocaleDateString('en-US',{weekday:'long'})})}
+  const plans=await Promise.all(days.map(d=>get('training_plan',`select=*&workout_date=eq.${d.date}&limit=1`).catch(()=>[])));
+  const h=D.today||{},rec=h.whoop_recovery_score,hrv=h.hrv_ms;
+  const wrap=$('upcoming-wrap');wrap.innerHTML='';
+
+  for(let i=0;i<days.length;i++){
+    const{date,label}=days[i],p=plans[i]?.[0]||{};
+    if(!p.workout_type){wrap.innerHTML+=`<div class="up-card"><div class="up-day">${label}</div><div class="up-title" style="color:var(--dim)">No plan found</div></div>`;continue}
+    const isQ=['tempo','interval','marathon_pace'].includes(p.workout_type);
+    const isL=p.workout_type==='long';
+    let adj=null,adjColor='var(--yellow)',adjMi=p.target_miles,adjPace=pace(p.workout_type),why='';
+    const projRec=i===0?rec:(rec?Math.min(100,rec+8):null);
+
+    if(projRec<34&&isQ){adj='Swapped to easy';adjPace=pace('easy');adjMi=Math.round(p.target_miles*.8*10)/10;why=`Recovery ${Math.round(projRec)}/100 below threshold. Pfitzinger protocol: swap quality for easy miles. Digging deeper at this recovery level delays adaptation.`}
+    else if(projRec<34&&isL){adj='Shortened 20%';adjMi=Math.round(p.target_miles*.8*10)/10;why=`Low recovery (${Math.round(projRec)}/100) and HRV ${hrv?.toFixed(1)}ms below baseline. Seiler: protect long run stimulus by reducing to achievable load.`}
+    else if(projRec<60&&isQ){adj='Reduced intensity';why=`Moderate recovery (${Math.round(projRec)}/100). Execute quality session but target lower end of pace range. Exit if HR exceeds target zone by >10bpm.`}
+    else if(hrv&&hrv>=HRV_BASE*1.1&&rec>=80&&isQ){adj='Full send';adjColor='var(--green)';why=`HRV ${hrv.toFixed(1)}ms above baseline and recovery ${Math.round(rec)}/100. Daniels: you're primed — execute at upper end of pace range or add an extra rep.`}
+
+    const typeLabel=(p.workout_type||'rest').replace(/_/g,' ');
+    wrap.innerHTML+=`<div class="up-card">
+      <div class="up-hdr">
+        <div class="up-day">${label} &middot; ${date}</div>
+        <span class="pill" style="font-size:10px;padding:3px 10px;background:${adjColor}18;color:${adjColor};border:1px solid ${adjColor}30">${adj||'As planned'}</span>
+      </div>
+      <div class="up-title">${typeLabel.charAt(0).toUpperCase()+typeLabel.slice(1)} &mdash; ${adjMi} miles</div>
+      <div class="up-row">
+        <div class="up-stat">Pace <span>${adjPace}</span></div>
+        <div class="up-stat">Week total <span>${p.week_total_miles||'—'} mi</span></div>
+        ${p.is_quality?`<div class="up-stat"><span style="color:var(--yellow)">Quality</span></div>`:''}
+      </div>
+      ${adj?`<div class="up-why">⚡ ${why}</div>`:''}
+    </div>`;
+  }
+}
+
+async function syncAll(){
+  const btn=$('sync-btn'),icon=$('sync-icon'),st=$('sync-st');
+  btn.disabled=true;icon.classList.add('spin');st.textContent='Syncing Whoop...';
+  try{const r=await fetch(`${RW}/whoop/sync`);const d=await r.json();st.textContent=d.success?'Whoop synced':'Whoop failed'}
+  catch(e){st.textContent='Sync error'}
+  st.textContent='Refreshing data...';
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
+  await Promise.all([generateRec(),loadUpcoming()]);
+  btn.disabled=false;icon.classList.remove('spin');
+  st.textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+async function submitLog(){
+  const dist=$('ld').value;
+  const h=$('ldur-h').value||0,m=$('ldur-m').value||0,s=$('ldur-s').value||0;
+  const totalMins=parseInt(h)*60+parseInt(m)+parseInt(s)/60;
+  const durMins=totalMins>0?Math.round(totalMins*10)/10:null;
+  const hr=$('lhr').value,elev=$('lelev').value,cad=$('lcad').value,wt=$('lwt').value;
+  const notes=$('lnotes').value;
+  if(!dist&&!durMins){alert('Enter at least a distance or duration.');return}
+  const td=today();
+  const paceStr=dist&&durMins?fmtPace((totalMins*60)/parseFloat(dist)):'';
+  await Promise.all([
+    post('training_log',{log_date:td,run_distance_miles:dist?parseFloat(dist):null,run_duration_minutes:durMins,run_rpe:selRPEVal,workout_type:selWTVal,run_notes:notes||null,log_type:'daily_run'},'log_date'),
+    post('health_history',{date:td,run_distance_miles:dist?parseFloat(dist):null,run_duration_minutes:durMins,hr_avg:hr?parseFloat(hr):null,body_weight_lbs:wt?parseFloat(wt):null,run_pace_seconds:dist&&durMins?Math.round((totalMins*60)/parseFloat(dist)):null},'date')
+  ]);
+  $('lnotes').value='';$('ldur-h').value='';$('ldur-m').value='';$('ldur-s').value='';$('ld').value='';
+  $('calc-pace').textContent='—';$('calc-dur').textContent='—';$('calc-zone').textContent='—';
+  const ctx=`Run logged: ${dist?dist+'mi':''} ${durMins?durMins.toFixed(1)+'min':''} ${paceStr?'@ '+paceStr:''} ${hr?hr+'bpm avg HR':''} ${elev?elev+'ft elev':''} ${cad?cad+'spm cadence':''} RPE ${selRPEVal||'?'}/10 type:${selWTVal||'unspecified'}${notes?` notes: ${notes}`:''}`;
+  await Promise.all([loadHistory(),loadWeekStats()]);
+  await generateRec(ctx);
+}
+
+function toggleChat(){
+  chatOpen=!chatOpen;
+  $('chat-panel').classList.toggle('open',chatOpen);
+  if(chatOpen&&!chatHistory.length)addMsg('coach',`Hi! I'm CoachClaude — your personal marathon coach with full context of your biometrics, training load, morning check-in, and history. Ask me anything about your journey to sub-2:50 in Chicago.\n\nGood questions to start with:\n• "Should I push hard today or back off?"\n• "Explain my HRV trend this week"\n• "What's my CTL/ATL/TSB telling you?"\n• "How does my sleep affect tomorrow's run?"\n• "Am I on track for sub-2:50?"`);
+  if(chatOpen)$('chat-input').focus();
+}
+
+function addMsg(role,text){
+  const msgs=$('chat-msgs');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  div.innerHTML=`<div class="msg-name">${role==='user'?'You':'CoachClaude'}</div><div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(){const msgs=$('chat-msgs');const d=document.createElement('div');d.className='msg coach';d.id='typing';d.innerHTML='<div class="msg-name">CoachClaude</div><div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight}
+function removeTyping(){const t=$('typing');if(t)t.remove()}
+
+async function sendChat(){
+  const input=$('chat-input'),sendBtn=$('chat-send');
+  const text=input.value.trim();if(!text)return;
+  if(!chatOpen){chatOpen=true;$('chat-panel').classList.add('open')}
+  addMsg('user',text);input.value='';sendBtn.disabled=true;addTyping();
+  chatHistory.push({role:'user',content:text});
+  const sys=`You are CoachClaude, an elite marathon coach. Be direct, specific, and always reference the athlete's actual data. Keep responses under 250 words unless complexity requires more. Use Daniels, Pfitzinger, Seiler, and Huberman frameworks explicitly.\n\n${buildContext()}`;
+  try{
+    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,system:sys,messages:chatHistory.slice(-12)})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Connection error.';
+    removeTyping();addMsg('coach',reply);
+    chatHistory.push({role:'assistant',content:reply});
+  }catch(e){removeTyping();addMsg('coach','Connection error — try again.')}
+  sendBtn.disabled=false;
+}
+
+function calcPace(){
+  const dist=parseFloat($('ld')?.value)||0;
+  const h=parseInt($('ldur-h')?.value)||0;
+  const m=parseInt($('ldur-m')?.value)||0;
+  const s=parseInt($('ldur-s')?.value)||0;
+  const totalSecs=h*3600+m*60+s;
+  const totalMins=totalSecs/60;
+
+  // Duration display
+  if(totalSecs>0){
+    const dh=Math.floor(totalSecs/3600),dm=Math.floor((totalSecs%3600)/60),ds=totalSecs%60;
+    $('calc-dur').textContent=dh>0?`${dh}h ${dm}m ${ds}s`:`${dm}m ${ds}s`;
+  } else {
+    $('calc-dur').textContent='—';
+  }
+
+  // Pace calculation
+  if(dist>0&&totalSecs>0){
+    const secsPerMile=totalSecs/dist;
+    const pm=Math.floor(secsPerMile/60),ps=Math.round(secsPerMile%60);
+    const paceDisplay=`${pm}:${String(ps).padStart(2,'0')}/mi`;
+    $('calc-pace').textContent=paceDisplay;
+
+    // Zone identification
+    let zone='',zoneColor='var(--muted)';
+    if(secsPerMile>=480){zone='Easy (E)';zoneColor='var(--green)'}
+    else if(secsPerMile>=390){zone='Marathon (M)';zoneColor='var(--blue)'}
+    else if(secsPerMile>=365){zone='Threshold (T)';zoneColor='var(--yellow)'}
+    else if(secsPerMile>=340){zone='Interval (I)';zoneColor='var(--red)'}
+    else{zone='Repetition (R)';zoneColor='var(--purple)'}
+    $('calc-zone').textContent=zone;
+    $('calc-zone').style.color=zoneColor;
+  } else {
+    $('calc-pace').textContent='—';
+    $('calc-zone').textContent='—';
+  }
+}
+
+function toggleManualLog(){
+  const ml=$('manual-log');
+  const btn=$('manual-toggle');
+  if(ml.style.display==='none'){ml.style.display='block';btn.textContent='− Hide manual log'}
+  else{ml.style.display='none';btn.textContent='+ Log manually'}
+}
+
+async function loadTodaysRuns(){
+  const td=today();
+  // Get today's workouts from health_workouts
+  const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
+  const startOfDay=new Date(now);startOfDay.setHours(0,0,0,0);
+  const endOfDay=new Date(now);endOfDay.setHours(23,59,59,999);
+
+  const workouts=await get('health_workouts',
+    `select=*&start=gte.${startOfDay.toISOString()}&start=lte.${endOfDay.toISOString()}&order=start.desc`
+  ).catch(()=>[]);
+
+  // Also check yesterday if nothing today (Garmin often syncs late)
+  let allWorkouts=workouts||[];
+  if(!allWorkouts.length){
+    const yest=new Date(startOfDay);yest.setDate(yest.getDate()-1);
+    const yestEnd=new Date(yest);yestEnd.setHours(23,59,59,999);
+    const yestW=await get('health_workouts',
+      `select=*&start=gte.${yest.toISOString()}&start=lte.${yestEnd.toISOString()}&order=start.desc`
+    ).catch(()=>[]);
+    allWorkouts=yestW||[];
+  }
+
+  // Filter to runs only, prefer Outdoor Run over Run duplicates
+  const runTypes=['Outdoor Run','Run','Trail Run','Treadmill Running'];
+  const runs=allWorkouts.filter(w=>runTypes.some(t=>w.workout_type?.includes(t)));
+
+  // Dedup — keep best version of same start time
+  const byStart=new Map();
+  for(const w of runs){
+    const key=w.start?.slice(0,16);
+    const ex=byStart.get(key);
+    if(!ex||(w.distance_miles&&!ex.distance_miles)||w.workout_type==='Outdoor Run')byStart.set(key,w);
+  }
+  const dedupedRuns=Array.from(byStart.values());
+
+  // Check which are already logged
+  const logged=await get('training_log',`select=log_date,run_distance_miles&log_date=eq.${td}&limit=1`).catch(()=>[]);
+  const alreadyLogged=logged?.[0]?.run_distance_miles>0;
+
+  const wrap=$('todays-runs-wrap');
+  if(!dedupedRuns.length){
+    wrap.innerHTML='<div style="font-size:12px;color:var(--dim);text-align:center;padding:12px 0">No runs found today — sync after your run or log manually below.</div>';
+    return;
+  }
+
+  wrap.innerHTML=dedupedRuns.map((w,i)=>{
+    const distMi=w.distance_miles;
+    const durMins=w.duration_minutes;
+    const paceS=distMi&&durMins?(durMins*60)/distMi:null;
+    const paceDisplay=fmtPace(paceS);
+    const startTime=w.start?new Date(w.start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Chicago'}):'';
+    const isLogged=alreadyLogged&&i===0;
+
+    // Pace zone color
+    let zoneColor='var(--muted)',zoneName='';
+    if(paceS){
+      if(paceS>=480){zoneColor='var(--green)';zoneName='Easy'}
+      else if(paceS>=390){zoneColor='var(--blue)';zoneName='Marathon'}
+      else if(paceS>=365){zoneColor='var(--yellow)';zoneName='Threshold'}
+      else if(paceS>=340){zoneColor='var(--red)';zoneName='Interval'}
+      else{zoneColor='var(--purple)';zoneName='Rep'}
+    }
+
+    const extras=[];
+    if(w.elevation_gain_ft)extras.push(`<div class="run-extra-item">Elevation <span>${Math.round(w.elevation_gain_ft)}ft</span></div>`);
+    if(w.cadence_avg)extras.push(`<div class="run-extra-item">Cadence <span>${Math.round(w.cadence_avg)} spm</span></div>`);
+    if(w.heart_rate_min&&w.heart_rate_max)extras.push(`<div class="run-extra-item">HR range <span>${Math.round(w.heart_rate_min)}–${Math.round(w.heart_rate_max)} bpm</span></div>`);
+    if(w.energy_burned_kcal)extras.push(`<div class="run-extra-item">Calories <span>${Math.round(w.energy_burned_kcal)} kcal</span></div>`);
+    if(w.hr_recovery_bpm)extras.push(`<div class="run-extra-item">HR recovery <span>${Math.round(w.hr_recovery_bpm)} bpm</span></div>`);
+    if(w.is_indoor===false)extras.push(`<div class="run-extra-item">Type <span>Outdoor</span></div>`);
+    if(w.is_indoor===true)extras.push(`<div class="run-extra-item">Type <span>Indoor</span></div>`);
+
+    return`<div class="run-card ${isLogged?'logged':''}" id="run-card-${i}">
+      <div class="run-header">
+        <div>
+          <div class="run-name">${w.workout_type||'Run'} ${startTime?'· '+startTime:''}</div>
+          <div class="run-source">${w.source||'Garmin'}</div>
+        </div>
+        ${isLogged?'<span class="pill green">Logged ✓</span>':''}
+      </div>
+      <div class="run-stats">
+        <div class="run-stat">
+          <div class="rv" style="color:var(--green)">${distMi?distMi.toFixed(2):'—'}</div>
+          <div class="rl">miles</div>
+        </div>
+        <div class="run-stat">
+          <div class="rv" style="color:var(--blue)">${durMins?fmtDur(durMins):'—'}</div>
+          <div class="rl">duration</div>
+        </div>
+        <div class="run-stat">
+          <div class="rv" style="color:${zoneColor}">${paceDisplay}</div>
+          <div class="rl">${zoneName||'pace'}</div>
+        </div>
+        <div class="run-stat">
+          <div class="rv" style="color:var(--red)">${w.heart_rate_avg?Math.round(w.heart_rate_avg):'—'}</div>
+          <div class="rl">avg HR</div>
+        </div>
+      </div>
+      ${extras.length?`<div class="run-extra">${extras.join('')}</div>`:''}
+      ${!isLogged?`
+        <div style="margin-bottom:8px">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">How hard? (RPE)</div>
+          <div class="rpe-confirm" id="rpe-${i}">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="rc-btn" onclick="selRunRPE(${i},${n},this)">${n}</button>`).join('')}
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Workout type</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap" id="wt-${i}">
+            ${['easy','tempo','marathon_pace','long','interval','recovery'].map(t=>`<button class="tb" onclick="selRunWT(${i},'${t}',this)">${t.replace('_',' ')}</button>`).join('')}
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <textarea id="notes-${i}" placeholder="How did it feel? Legs, HR, niggles..." style="height:50px"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="confirmRun(${i})" id="confirm-btn-${i}">Log this run &rarr;</button>
+      `:'<div style="font-size:12px;color:var(--green);text-align:center;padding:4px 0">✓ This run is logged. View in coaching history below.</div>'}
+    </div>`;
+  }).join('');
+
+  // Store run data for confirmation
+  window._todaysRuns=dedupedRuns;
+  window._runRPE={};
+  window._runWT={};
+}
+
+function selRunRPE(runIdx,val,btn){
+  window._runRPE[runIdx]=val;
+  document.querySelectorAll(`#rpe-${runIdx} .rc-btn`).forEach(b=>b.classList.remove('sl'));
+  btn.classList.add('sl');
+}
+
+function selRunWT(runIdx,val,btn){
+  window._runWT[runIdx]=val;
+  document.querySelectorAll(`#wt-${runIdx} .tb`).forEach(b=>b.classList.remove('sl'));
+  btn.classList.add('sl');
+}
+
+async function confirmRun(runIdx){
+  const w=window._todaysRuns[runIdx];
+  const rpe=window._runRPE[runIdx]||null;
+  const wt=window._runWT[runIdx]||null;
+  const notes=$(`notes-${runIdx}`)?.value||null;
+  const btn=$(`confirm-btn-${runIdx}`);
+  if(!rpe){alert('Please select an RPE before logging.');return}
+
+  btn.disabled=true;btn.textContent='Saving...';
+  const td=today();
+  const durMins=w.duration_minutes;
+  const paceS=w.distance_miles&&durMins?(durMins*60)/w.distance_miles:null;
+
+  await Promise.all([
+    post('training_log',{
+      log_date:td,
+      run_distance_miles:w.distance_miles||null,
+      run_duration_minutes:durMins||null,
+      run_rpe:rpe,
+      workout_type:wt,
+      run_notes:notes,
+      log_type:'daily_run'
+    },'log_date'),
+    post('health_history',{
+      date:td,
+      run_distance_miles:w.distance_miles||null,
+      run_duration_minutes:durMins||null,
+      hr_avg:w.heart_rate_avg||null,
+      hr_max:w.heart_rate_max||null,
+      run_pace_seconds:paceS?Math.round(paceS):null
+    },'date')
+  ]);
+
+  // Mark card as logged
+  const card=$(`run-card-${runIdx}`);
+  card.classList.add('logged');
+  card.innerHTML=card.innerHTML.replace(/id="confirm-btn-\d+"/,'');
+  const confirmArea=card.querySelector('.btn');
+  if(confirmArea)confirmArea.remove();
+
+  const ctx=`Run confirmed from Garmin: ${w.distance_miles?w.distance_miles.toFixed(2)+'mi':''} ${durMins?fmtDur(durMins):''} ${fmtPace(paceS)} avg HR ${w.heart_rate_avg?Math.round(w.heart_rate_avg):'?'}bpm ${w.elevation_gain_ft?Math.round(w.elevation_gain_ft)+'ft elev':''} ${w.cadence_avg?Math.round(w.cadence_avg)+'spm cadence':''} RPE ${rpe}/10 type:${wt||'unspecified'}${notes?` notes:${notes}`:''}`;
+
+  await Promise.all([loadHistory(),loadWeekStats()]);
+  await generateRec(ctx);
+}
+
+let runChartInstance = null;
+let runStreamData = null;
+let currentChartMode = 'hr';
+
+function switchChart(mode, btn) {
+  currentChartMode = mode;
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('ac'));
+  btn.classList.add('ac');
+  if (runStreamData) renderChart(runStreamData, mode);
+}
+
+function fmtPaceFromSecs(secs) {
+  if (!secs || secs > 1200 || secs < 180) return null;
+  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+async function loadRunChart() {
+  // Get most recent run workout
+  const workouts = await get('health_workouts',
+    `select=id,start,distance_miles,duration_minutes,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,workout_type&workout_type=in.(Outdoor%20Run,Run,Trail%20Run)&order=start.desc&limit=1`
+  ).catch(() => []);
+
+  const w = workouts?.[0];
+  if (!w) {
+    $('run-chart-card').innerHTML = '<div class="no-stream">No runs found yet. Go for a run, sync, and your HR and pace data will appear here.</div>';
+    return;
+  }
+
+  const startDate = new Date(w.start);
+  const title = startDate.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) +
+    ` · ${w.distance_miles?.toFixed(2) || '?'} mi · ${fmtPace(w.pace_per_mile_seconds) || '?'}`;
+  $('run-chart-title').textContent = title;
+
+  // Get stream data
+  const streams = await get('workout_streams',
+    `select=timestamp_offset_seconds,heart_rate,pace_seconds_per_mile,speed_mph,cadence&workout_id=eq.${w.id}&order=timestamp_offset_seconds.asc`
+  ).catch(() => []);
+
+  // Populate summary stats
+  $('cs-avghr').textContent = w.heart_rate_avg ? Math.round(w.heart_rate_avg) + ' bpm' : '—';
+  $('cs-maxhr').textContent = w.heart_rate_max ? Math.round(w.heart_rate_max) + ' bpm' : '—';
+  $('cs-avgpace').textContent = fmtPace(w.pace_per_mile_seconds) || '—';
+
+  // Best mile pace from stream
+  if (streams?.length) {
+    const pacePoints = streams.filter(s => s.pace_seconds_per_mile > 180 && s.pace_seconds_per_mile < 1200);
+    if (pacePoints.length) {
+      const bestPace = Math.min(...pacePoints.map(s => s.pace_seconds_per_mile));
+      $('cs-best').textContent = fmtPace(bestPace) || '—';
+    }
+  }
+
+  if (!streams?.length) {
+    $('run-chart-card').querySelector('.chart-wrap').innerHTML =
+      '<div class="no-stream">Detailed stream data not available for this run.<br>Future runs will capture minute-by-minute HR and pace after syncing.</div>';
+    return;
+  }
+
+  runStreamData = streams;
+  renderChart(streams, currentChartMode);
+}
+
+function renderChart(streams, mode) {
+  const canvas = $('run-chart');
+  if (!canvas) return;
+  if (runChartInstance) { runChartInstance.destroy(); runChartInstance = null; }
+
+  // Sample data — max 60 points for performance
+  const step = Math.max(1, Math.floor(streams.length / 60));
+  const sampled = streams.filter((_, i) => i % step === 0);
+
+  const labels = sampled.map(s => {
+    const mins = Math.floor(s.timestamp_offset_seconds / 60);
+    return mins + 'm';
+  });
+
+  const datasets = [];
+
+  if (mode === 'hr' || mode === 'both') {
+    const hrData = sampled.map(s => s.heart_rate || null);
+    datasets.push({
+      label: 'Heart Rate (bpm)',
+      data: hrData,
+      borderColor: '#ef4444',
+      backgroundColor: '#ef444415',
+      fill: mode === 'hr',
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      borderWidth: 2,
+      yAxisID: 'y',
+    });
+  }
+
+  if (mode === 'pace' || mode === 'both') {
+    const paceData = sampled.map(s => {
+      if (!s.pace_seconds_per_mile || s.pace_seconds_per_mile < 180 || s.pace_seconds_per_mile > 1200) return null;
+      return Math.round(s.pace_seconds_per_mile);
+    });
+    datasets.push({
+      label: 'Pace (sec/mi)',
+      data: paceData,
+      borderColor: '#f59e0b',
+      backgroundColor: '#f59e0b15',
+      fill: mode === 'pace',
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      borderWidth: 2,
+      yAxisID: mode === 'both' ? 'y2' : 'y',
+    });
+  }
+
+  const scales = {
+    x: {
+      grid: { color: '#ffffff08' },
+      ticks: { color: '#7070a0', font: { size: 10 }, maxTicksLimit: 8 }
+    },
+    y: {
+      position: 'left',
+      grid: { color: '#ffffff08' },
+      ticks: {
+        color: '#7070a0',
+        font: { size: 10 },
+        callback: (val) => {
+          if (mode === 'pace' || (mode === 'both' && datasets[0]?.yAxisID === 'y2')) {
+            const m = Math.floor(val/60), s = val%60;
+            return `${m}:${String(s).padStart(2,'0')}`;
+          }
+          return val + (mode === 'hr' ? ' bpm' : '');
+        }
+      }
+    }
+  };
+
+  if (mode === 'both') {
+    scales.y2 = {
+      position: 'right',
+      grid: { drawOnChartArea: false },
+      ticks: {
+        color: '#f59e0b',
+        font: { size: 10 },
+        callback: (val) => {
+          const m = Math.floor(val/60), s = val%60;
+          return `${m}:${String(s).padStart(2,'0')}`;
+        }
+      },
+      reverse: true,
+    };
+  }
+
+  runChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: mode === 'both', labels: { color: '#7070a0', font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#18181f',
+          borderColor: '#ffffff18',
+          borderWidth: 1,
+          titleColor: '#e8e8f0',
+          bodyColor: '#7070a0',
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.raw;
+              if (!val) return null;
+              if (ctx.dataset.label.includes('Pace')) {
+                const m = Math.floor(val/60), s = val%60;
+                return ` Pace: ${m}:${String(s).padStart(2,'0')}/mi`;
+              }
+              return ` HR: ${Math.round(val)} bpm`;
+            }
+          }
+        }
+      },
+      scales
+    }
+  });
+}
+
+async function init(){
+  $('dout').textContent=daysLeft();buildPhase(wk());
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
+  await Promise.all([generateRec(),loadUpcoming()]);
+}
+init();
+</script>
+</body>
+</html>
