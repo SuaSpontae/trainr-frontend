@@ -778,7 +778,37 @@ function resetCheckin(){
 
 function showCheckinForm(){
   const wrap=$('checkin-wrap');
-  showCheckinForm();
+  wrap.innerHTML=`
+    <p class="sl">Morning check-in</p>
+    <div class="checkin-card">
+      <h3>How are you feeling today?</h3>
+      <div class="slider-wrap">
+        <label>Fatigue <span id="v-fat">5</span>/10</label>
+        <input type="range" min="1" max="10" value="5" oninput="$('v-fat').textContent=this.value" id="s-fat">
+      </div>
+      <div class="slider-wrap">
+        <label>Leg soreness <span id="v-sor">5</span>/10</label>
+        <input type="range" min="1" max="10" value="5" oninput="$('v-sor').textContent=this.value" id="s-sor">
+      </div>
+      <div class="slider-wrap">
+        <label>Motivation <span id="v-mot">7</span>/10</label>
+        <input type="range" min="1" max="10" value="7" oninput="$('v-mot').textContent=this.value" id="s-mot">
+      </div>
+      <div class="slider-wrap">
+        <label>Yesterday's nutrition quality <span id="v-nut">7</span>/10</label>
+        <input type="range" min="1" max="10" value="7" oninput="$('v-nut').textContent=this.value" id="s-nut">
+      </div>
+      <div class="slider-wrap">
+        <label>Life stress <span id="v-str">3</span>/10</label>
+        <input type="range" min="1" max="10" value="3" oninput="$('v-str').textContent=this.value" id="s-str">
+      </div>
+      <div class="checkin-grid">
+        <div><label>Alcohol units (yesterday)</label><input type="number" id="ci-alc" placeholder="0" min="0" step="0.5"></div>
+        <div><label>Body weight (lbs)</label><input type="number" id="ci-wt" placeholder="175" step="0.1"></div>
+      </div>
+      <div style="margin-bottom:12px"><label>Any pain, niggles, or notes?</label><textarea id="ci-notes" placeholder="None / left knee slight tightness / felt great / slept poorly..."></textarea></div>
+      <button class="btn btn-secondary" onclick="submitCheckin()">Submit morning check-in &rarr;</button>
+    </div>`;
 }
 
 async function renderCheckin(){
