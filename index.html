@@ -711,7 +711,7 @@ async function loadHistory(){
       l.workout_type?'· '+l.workout_type.replace(/_/g,' '):'',
       l.run_notes?'· '+l.run_notes:''
     ].filter(Boolean).join(' '):null;
-    const ciStr=isCI?`Feel ${l.weekly_feel}/10 · Stress ${l.weekly_stress}/10${l.weekly_pain?` · ${l.weekly_pain}`:''}${l.weekly_notes?` · ${l.weekly_notes}`:''}`:null;
+    const ciStr=isCI?('Feel '+l.weekly_feel+'/10 · Stress '+l.weekly_stress+'/10'+(l.weekly_pain?' · '+l.weekly_pain:'')+(l.weekly_notes?' · '+l.weekly_notes:'')):null;
     const mciStr=isMCI?`Fatigue ${l.subjective_fatigue}/10 · Soreness ${l.subjective_soreness}/10 · Nutrition ${l.subjective_nutrition}/10`:null;
     return`<div class="hc">
       <div class="hh">
@@ -801,7 +801,7 @@ async function submitCheckin(){
 
   $('checkin-wrap').innerHTML='<div class="flag green" style="margin-bottom:14px">✓ Morning check-in saved. Your coach has full context for today\'s recommendation.</div>';
   await loadHistory();
-  await generateRec(`Morning check-in: fatigue ${fat}/10, soreness ${sor}/10, motivation ${mot}/10, nutrition ${nut}/10, stress ${str}/10${alc?`, alcohol ${alc} units last night`:''}${wt?`, weight ${wt}lbs`:''}${notes?`, notes: ${notes}`:''}`);
+  await generateRec('Morning check-in: fatigue '+fat+'/10, soreness '+sor+'/10, motivation '+mot+'/10, nutrition '+nut+'/10, stress '+str+'/10'+(alc?', alcohol '+alc+' units last night':'')+(wt?', weight '+wt+'lbs':'')+(notes?', notes: '+notes:''));
 }
 
 async function submitWeekly(){
@@ -810,7 +810,7 @@ async function submitWeekly(){
   await post('training_log',{log_date:td,log_type:'weekly_checkin',weekly_feel:feel?parseInt(feel):null,weekly_stress:stress?parseInt(stress):null,weekly_pain:pain||null,weekly_notes:notes||null,recommendation_title:'Weekly check-in'},'log_date');
   $('checkin-wrap').innerHTML='<div class="flag green" style="margin-bottom:14px">✓ Weekly check-in saved. Your coach will use this for next week\'s plan.</div>';
   await loadHistory();
-  await generateRec(`Weekly check-in: feel ${feel}/10, stress ${stress}/10${pain?`, pain: ${pain}`:''}${notes?`, notes: ${notes}`:''}`);
+  await generateRec('Weekly check-in: feel '+feel+'/10, stress '+stress+'/10'+(pain?', pain: '+pain:'')+(notes?', notes: '+notes:''));
 }
 
 function buildContext(){
@@ -830,7 +830,7 @@ BIOMETRICS TODAY:
 - Sleep: ${h.sleep_total_hrs?h.sleep_total_hrs.toFixed(1)+'h total':'no data'} | Deep: ${h.sleep_deep_hrs?h.sleep_deep_hrs.toFixed(1)+'h':'?'} | REM: ${h.sleep_rem_hrs?h.sleep_rem_hrs.toFixed(1)+'h':'?'} | Efficiency: ${h.sleep_efficiency_pct?Math.round(h.sleep_efficiency_pct)+'%':'?'} | Disturbances: ${h.sleep_disturbances??'?'}
 - SpO2: ${h.spo2_percentage?h.spo2_percentage.toFixed(1)+'%':'no data'} | Skin temp: ${h.skin_temp_celsius?h.skin_temp_celsius.toFixed(1)+'°C':'no data'}
 
-MORNING CHECK-IN: ${mci?`Fatigue ${mci.subjective_fatigue}/10, soreness ${mci.subjective_soreness}/10, motivation ${mci.subjective_motivation}/10, nutrition ${mci.subjective_nutrition}/10, stress ${mci.subjective_stress}/10${mci.alcohol_units?`, alcohol ${mci.alcohol_units} units`:''}${mci.body_weight_lbs?`, weight ${mci.body_weight_lbs}lbs`:''}${mci.morning_notes?`, notes: ${mci.morning_notes}`:'`}'`:'Not submitted yet'}
+MORNING CHECK-IN: ${mci?('Fatigue '+mci.subjective_fatigue+'/10, soreness '+mci.subjective_soreness+'/10, motivation '+mci.subjective_motivation+'/10, nutrition '+mci.subjective_nutrition+'/10, stress '+mci.subjective_stress+'/10'+(mci.alcohol_units?', alcohol '+mci.alcohol_units+' units':'')+(mci.body_weight_lbs?', weight '+mci.body_weight_lbs+'lbs':'')+(mci.morning_notes?', notes: '+mci.morning_notes:'')):'Not submitted yet'}
 
 TRAINING PLAN TODAY: ${p.workout_type||'easy'} ${p.target_miles||0}mi @ ${pace(p.workout_type)} | Week target: ${p.week_total_miles||0}mi | Logged so far: ${wmi}mi
 
