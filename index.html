@@ -207,6 +207,18 @@ textarea{resize:none;height:55px}
 .typing span:nth-child(3){animation-delay:.3s}
 
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-header h3{font-size:15px;font-weight:700}
+.chart-tabs{display:flex;gap:6px}
+.chart-tab{padding:5px 12px;font-size:11px;font-weight:600;border:1px solid var(--border2);border-radius:100px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.chart-tab.ac{background:var(--blue-bg);color:var(--blue);border-color:#3b82f640}
+.chart-wrap{position:relative;height:200px;margin-bottom:10px}
+.chart-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cs{background:var(--surface2);border-radius:10px;padding:9px;text-align:center}
+.cs .cv{font-size:15px;font-weight:700;margin-bottom:2px}
+.cs .cl{font-size:10px;color:var(--muted)}
+.no-stream{font-size:13px;color:var(--dim);text-align:center;padding:40px 20px;line-height:1.6}
 .run-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:16px;margin-bottom:10px}
 .run-card.logged{border-color:#22c55e40;background:var(--green-bg)}
 .run-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -456,6 +468,29 @@ textarea{resize:none;height:55px}
       <textarea id="lnotes" placeholder="How did it feel? Any tightness, HR issues, wins?" style="margin-bottom:12px"></textarea>
       <button class="btn btn-primary" onclick="submitLog()">Save run &rarr;</button>
     </div>
+  </div>
+</div>
+
+<!-- RUN ANALYSIS -->
+<div style="height:1px;background:var(--border);margin:20px 0"></div>
+<p class="sl">Last run analysis</p>
+<div class="chart-card" id="run-chart-card">
+  <div class="chart-header">
+    <h3 id="run-chart-title">Loading...</h3>
+    <div class="chart-tabs">
+      <button class="chart-tab ac" onclick="switchChart('hr',this)">Heart Rate</button>
+      <button class="chart-tab" onclick="switchChart('pace',this)">Pace</button>
+      <button class="chart-tab" onclick="switchChart('both',this)">Both</button>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="run-chart"></canvas>
+  </div>
+  <div class="chart-stats">
+    <div class="cs"><div class="cv" id="cs-avghr" style="color:var(--red)">—</div><div class="cl">avg HR</div></div>
+    <div class="cs"><div class="cv" id="cs-maxhr" style="color:var(--orange)">—</div><div class="cl">max HR</div></div>
+    <div class="cs"><div class="cv" id="cs-avgpace" style="color:var(--yellow)">—</div><div class="cl">avg pace</div></div>
+    <div class="cs"><div class="cv" id="cs-best" style="color:var(--green)">—</div><div class="cl">best mile</div></div>
   </div>
 </div>
 
@@ -937,7 +972,7 @@ async function syncAll(){
   try{const r=await fetch(`${RW}/whoop/sync`);const d=await r.json();st.textContent=d.success?'Whoop synced':'Whoop failed'}
   catch(e){st.textContent='Sync error'}
   st.textContent='Refreshing data...';
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
   await Promise.all([generateRec(),loadUpcoming()]);
   btn.disabled=false;icon.classList.remove('spin');
   st.textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -1227,9 +1262,194 @@ async function confirmRun(runIdx){
   await generateRec(ctx);
 }
 
+let runChartInstance = null;
+let runStreamData = null;
+let currentChartMode = 'hr';
+
+function switchChart(mode, btn) {
+  currentChartMode = mode;
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('ac'));
+  btn.classList.add('ac');
+  if (runStreamData) renderChart(runStreamData, mode);
+}
+
+function fmtPaceFromSecs(secs) {
+  if (!secs || secs > 1200 || secs < 180) return null;
+  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+async function loadRunChart() {
+  // Get most recent run workout
+  const workouts = await get('health_workouts',
+    `select=id,start,distance_miles,duration_minutes,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,workout_type&workout_type=in.(Outdoor%20Run,Run,Trail%20Run)&order=start.desc&limit=1`
+  ).catch(() => []);
+
+  const w = workouts?.[0];
+  if (!w) {
+    $('run-chart-card').innerHTML = '<div class="no-stream">No runs found yet. Go for a run, sync, and your HR and pace data will appear here.</div>';
+    return;
+  }
+
+  const startDate = new Date(w.start);
+  const title = startDate.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) +
+    ` · ${w.distance_miles?.toFixed(2) || '?'} mi · ${fmtPace(w.pace_per_mile_seconds) || '?'}`;
+  $('run-chart-title').textContent = title;
+
+  // Get stream data
+  const streams = await get('workout_streams',
+    `select=timestamp_offset_seconds,heart_rate,pace_seconds_per_mile,speed_mph,cadence&workout_id=eq.${w.id}&order=timestamp_offset_seconds.asc`
+  ).catch(() => []);
+
+  // Populate summary stats
+  $('cs-avghr').textContent = w.heart_rate_avg ? Math.round(w.heart_rate_avg) + ' bpm' : '—';
+  $('cs-maxhr').textContent = w.heart_rate_max ? Math.round(w.heart_rate_max) + ' bpm' : '—';
+  $('cs-avgpace').textContent = fmtPace(w.pace_per_mile_seconds) || '—';
+
+  // Best mile pace from stream
+  if (streams?.length) {
+    const pacePoints = streams.filter(s => s.pace_seconds_per_mile > 180 && s.pace_seconds_per_mile < 1200);
+    if (pacePoints.length) {
+      const bestPace = Math.min(...pacePoints.map(s => s.pace_seconds_per_mile));
+      $('cs-best').textContent = fmtPace(bestPace) || '—';
+    }
+  }
+
+  if (!streams?.length) {
+    $('run-chart-card').querySelector('.chart-wrap').innerHTML =
+      '<div class="no-stream">Detailed stream data not available for this run.<br>Future runs will capture minute-by-minute HR and pace after syncing.</div>';
+    return;
+  }
+
+  runStreamData = streams;
+  renderChart(streams, currentChartMode);
+}
+
+function renderChart(streams, mode) {
+  const canvas = $('run-chart');
+  if (!canvas) return;
+  if (runChartInstance) { runChartInstance.destroy(); runChartInstance = null; }
+
+  // Sample data — max 60 points for performance
+  const step = Math.max(1, Math.floor(streams.length / 60));
+  const sampled = streams.filter((_, i) => i % step === 0);
+
+  const labels = sampled.map(s => {
+    const mins = Math.floor(s.timestamp_offset_seconds / 60);
+    return mins + 'm';
+  });
+
+  const datasets = [];
+
+  if (mode === 'hr' || mode === 'both') {
+    const hrData = sampled.map(s => s.heart_rate || null);
+    datasets.push({
+      label: 'Heart Rate (bpm)',
+      data: hrData,
+      borderColor: '#ef4444',
+      backgroundColor: '#ef444415',
+      fill: mode === 'hr',
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      borderWidth: 2,
+      yAxisID: 'y',
+    });
+  }
+
+  if (mode === 'pace' || mode === 'both') {
+    const paceData = sampled.map(s => {
+      if (!s.pace_seconds_per_mile || s.pace_seconds_per_mile < 180 || s.pace_seconds_per_mile > 1200) return null;
+      return Math.round(s.pace_seconds_per_mile);
+    });
+    datasets.push({
+      label: 'Pace (sec/mi)',
+      data: paceData,
+      borderColor: '#f59e0b',
+      backgroundColor: '#f59e0b15',
+      fill: mode === 'pace',
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      borderWidth: 2,
+      yAxisID: mode === 'both' ? 'y2' : 'y',
+    });
+  }
+
+  const scales = {
+    x: {
+      grid: { color: '#ffffff08' },
+      ticks: { color: '#7070a0', font: { size: 10 }, maxTicksLimit: 8 }
+    },
+    y: {
+      position: 'left',
+      grid: { color: '#ffffff08' },
+      ticks: {
+        color: '#7070a0',
+        font: { size: 10 },
+        callback: (val) => {
+          if (mode === 'pace' || (mode === 'both' && datasets[0]?.yAxisID === 'y2')) {
+            const m = Math.floor(val/60), s = val%60;
+            return `${m}:${String(s).padStart(2,'0')}`;
+          }
+          return val + (mode === 'hr' ? ' bpm' : '');
+        }
+      }
+    }
+  };
+
+  if (mode === 'both') {
+    scales.y2 = {
+      position: 'right',
+      grid: { drawOnChartArea: false },
+      ticks: {
+        color: '#f59e0b',
+        font: { size: 10 },
+        callback: (val) => {
+          const m = Math.floor(val/60), s = val%60;
+          return `${m}:${String(s).padStart(2,'0')}`;
+        }
+      },
+      reverse: true,
+    };
+  }
+
+  runChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: mode === 'both', labels: { color: '#7070a0', font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#18181f',
+          borderColor: '#ffffff18',
+          borderWidth: 1,
+          titleColor: '#e8e8f0',
+          bodyColor: '#7070a0',
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.raw;
+              if (!val) return null;
+              if (ctx.dataset.label.includes('Pace')) {
+                const m = Math.floor(val/60), s = val%60;
+                return ` Pace: ${m}:${String(s).padStart(2,'0')}/mi`;
+              }
+              return ` HR: ${Math.round(val)} bpm`;
+            }
+          }
+        }
+      },
+      scales
+    }
+  });
+}
+
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
 init();
