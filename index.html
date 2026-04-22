@@ -258,7 +258,10 @@ textarea{resize:none;height:55px}
   <button class="sync-btn" onclick="syncAll()" id="sync-btn">
     <span class="sync-icon" id="sync-icon">↻</span> Sync
   </button>
-  <span class="sync-st" id="sync-st"></span>
+  <div>
+    <span class="sync-st" id="sync-st">Tap to sync Whoop &amp; Health</span>
+    <div style="font-size:11px;color:var(--dim);margin-top:2px" id="last-synced"></div>
+  </div>
 </div>
 
 <div id="flags"></div>
@@ -984,7 +987,10 @@ async function syncAll(){
   await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
   await Promise.all([generateRec(),loadUpcoming()]);
   btn.disabled=false;icon.classList.remove('spin');
-  st.textContent='Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const syncTime=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  st.textContent='All data updated';
+  $('last-synced').textContent='Last synced: '+syncTime;
+  localStorage.setItem('lastSynced', new Date().toISOString());
 }
 
 async function submitLog(){
@@ -1458,6 +1464,13 @@ function renderChart(streams, mode) {
 
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
+  // Show last synced time from localStorage
+  const ls=localStorage.getItem('lastSynced');
+  if(ls){
+    const d=new Date(ls);
+    const isToday=d.toDateString()===new Date().toDateString();
+    $('last-synced').textContent='Last synced: '+(isToday?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  }
   await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
