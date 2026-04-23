@@ -823,10 +823,12 @@ async function renderCheckin(){
 
   // Always check Supabase directly — don't rely on cached history
   const existing=await get('training_log',
-    `select=log_date,subjective_fatigue,subjective_soreness,subjective_motivation,subjective_nutrition,subjective_stress,alcohol_units,body_weight_lbs,morning_notes&log_date=eq.${td}&log_type=eq.morning_checkin&limit=1`
+    `select=log_date,subjective_fatigue,subjective_soreness,subjective_motivation,subjective_nutrition,subjective_stress,alcohol_units,body_weight_lbs,morning_notes,log_type&log_date=eq.${td}&order=created_at.desc&limit=10`
   ).catch(()=>[]);
+  const checkinRow=existing?.find(r=>r.log_type==='morning_checkin');
+  if(checkinRow){existing.length=0;existing.push(checkinRow);}
 
-  if(existing?.[0]){
+  if(existing?.[0]&&existing[0].log_type==='morning_checkin'){
     const c=existing[0];
     const items=[
       c.subjective_fatigue?`Fatigue ${c.subjective_fatigue}/10`:'',
@@ -878,7 +880,7 @@ async function submitCheckin(){
   const notes=$('ci-notes')?.value||'';
 
   await Promise.all([
-    post('training_log',{log_date:td,log_type:'morning_checkin',subjective_fatigue:fat,subjective_soreness:sor,subjective_motivation:mot,subjective_nutrition:nut,subjective_stress:str,alcohol_units:alc||null,body_weight_lbs:wt||null,morning_notes:notes||null,recommendation_title:'Morning check-in'},'log_date'),
+    post('training_log',{log_date:td,log_type:'morning_checkin',subjective_fatigue:fat,subjective_soreness:sor,subjective_motivation:mot,subjective_nutrition:nut,subjective_stress:str,alcohol_units:alc||null,body_weight_lbs:wt||null,morning_notes:notes||null,recommendation_title:'Morning check-in'},'log_date,log_type'),
     post('health_history',{date:td,subjective_fatigue:fat,subjective_soreness:sor,subjective_nutrition:nut,subjective_stress:str,alcohol_units:alc||null,body_weight_lbs:wt||null,morning_notes:notes||null},'date')
   ]);
 
@@ -890,7 +892,7 @@ async function submitCheckin(){
 async function submitWeekly(){
   const td=today();
   const feel=$('wf')?.value,stress=$('ws2')?.value,pain=$('wp')?.value,notes=$('wn')?.value;
-  await post('training_log',{log_date:td,log_type:'weekly_checkin',weekly_feel:feel?parseInt(feel):null,weekly_stress:stress?parseInt(stress):null,weekly_pain:pain||null,weekly_notes:notes||null,recommendation_title:'Weekly check-in'},'log_date');
+  await post('training_log',{log_date:td,log_type:'weekly_checkin',weekly_feel:feel?parseInt(feel):null,weekly_stress:stress?parseInt(stress):null,weekly_pain:pain||null,weekly_notes:notes||null,recommendation_title:'Weekly check-in'},'log_date,log_type');
   $('checkin-wrap').innerHTML='<div class="flag green" style="margin-bottom:14px">✓ Weekly check-in saved. Your coach will use this for next week\'s plan.</div>';
   await loadHistory();
   await generateRec('Weekly check-in: feel '+feel+'/10, stress '+stress+'/10'+(pain?', pain: '+pain:'')+(notes?', notes: '+notes:''));
@@ -973,7 +975,7 @@ RECOMMENDATION:
     $('fw-wrap').innerHTML=fw?`<div class="fw-tag">Framework: ${fw}</div>`:'';
     badge.textContent=status==='GREEN'?'Train as planned':status==='YELLOW'?'Reduce intensity':'Easy day';
     badge.className='pill '+(status==='GREEN'?'green':status==='YELLOW'?'yellow':'red');
-    await post('training_log',{log_date:today(),recommendation_title:rt,recommendation_body:rec,recovery_status:status,rhr_today:D.today.resting_hr||null,sleep_hours:D.today.sleep_total_hrs||null,weekly_miles_at_log:parseFloat(wmi),log_type:'daily_run'},'log_date');
+    await post('training_log',{log_date:today(),recommendation_title:rt,recommendation_body:rec,recovery_status:status,rhr_today:D.today.resting_hr||null,sleep_hours:D.today.sleep_total_hrs||null,weekly_miles_at_log:parseFloat(wmi),log_type:'daily_run'},'log_date,log_type');
   }catch(e){title.textContent='Connection error';body.textContent='Check connection and refresh.'}
 }
 
@@ -1041,7 +1043,7 @@ async function submitLog(){
   const td=today();
   const paceStr=dist&&durMins?fmtPace((totalMins*60)/parseFloat(dist)):'';
   await Promise.all([
-    post('training_log',{log_date:td,run_distance_miles:dist?parseFloat(dist):null,run_duration_minutes:durMins,run_rpe:selRPEVal,workout_type:selWTVal,run_notes:notes||null,log_type:'daily_run'},'log_date'),
+    post('training_log',{log_date:td,run_distance_miles:dist?parseFloat(dist):null,run_duration_minutes:durMins,run_rpe:selRPEVal,workout_type:selWTVal,run_notes:notes||null,log_type:'daily_run'},'log_date,log_type'),
     post('health_history',{date:td,run_distance_miles:dist?parseFloat(dist):null,run_duration_minutes:durMins,hr_avg:hr?parseFloat(hr):null,body_weight_lbs:wt?parseFloat(wt):null,run_pace_seconds:dist&&durMins?Math.round((totalMins*60)/parseFloat(dist)):null},'date')
   ]);
   $('lnotes').value='';$('ldur-h').value='';$('ldur-m').value='';$('ldur-s').value='';$('ld').value='';
@@ -1282,7 +1284,7 @@ async function confirmRun(runIdx){
       workout_type:wt,
       run_notes:notes,
       log_type:'daily_run'
-    },'log_date'),
+    },'log_date,log_type'),
     post('health_history',{
       date:td,
       run_distance_miles:w.distance_miles||null,
@@ -1603,7 +1605,7 @@ async function confirmUnlogged(idx,dateStr){
       workout_type:wt,
       run_notes:'Logged from backlog',
       log_type:'daily_run'
-    },'log_date'),
+    },'log_date,log_type'),
     post('health_history',{
       date:dateStr,
       run_distance_miles:w.distance_miles||null,
