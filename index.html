@@ -520,6 +520,7 @@ textarea{resize:none;height:55px}
 </div>
 
 <!-- HISTORY -->
+<div id="unlogged-wrap"></div>
 <p class="sl">Coaching history</p>
 <div id="hist-list"><div style="font-size:13px;color:var(--dim);text-align:center;padding:20px">Loading history...</div></div>
 
@@ -719,12 +720,17 @@ async function loadWeekStats(){
   const w=wk();
   $('wk-pred').textContent=w<3?'building...':wmi>22?'2:51':wmi>15?'2:53':wmi>8?'2:55':'2:58';
 
-  // Prefill last run from health_history
-  const lr=(hist||[]).find(h=>h.run_distance_miles>0);
-  if(lr&&!(logs||[]).find(l=>l.log_date===lr.date&&l.run_distance_miles)){
-    $('ld').value=lr.run_distance_miles.toFixed(2);
+  // Only prefill if the run is from TODAY
+  const td2=today();
+  const todayRun=(hist||[]).find(h=>h.run_distance_miles>0&&h.date===td2);
+  if(todayRun&&!(logs||[]).find(l=>l.log_date===td2&&l.run_distance_miles)){
+    $('ld').value=todayRun.run_distance_miles.toFixed(2);
     $('ld').style.borderColor='var(--blue)';
-    if(lr.run_duration_minutes)$('ldur').value=lr.run_duration_minutes;
+    const durH=Math.floor(todayRun.run_duration_minutes/60);
+    const durM=Math.floor(todayRun.run_duration_minutes%60);
+    if(durH>0)$('ldur-h').value=durH;
+    if(durM>0)$('ldur-m').value=durM;
+    calcPace();
   }
   if(new Date().getDay()===0)renderWeeklyCheckin(logs);
 }
@@ -946,15 +952,16 @@ IMPORTANT COACHING NOTES:
 - This is week ${w} of 25. ${w<=4?'Base rebuild — no quality work, all easy miles, let aerobic system re-establish.':w<=12?'Aerobic development — introduce quality carefully, protect easy day intensity.':w<=19?'Race-specific build — specific marathon pace work, protect recovery days.':'Taper — trust the fitness, resist urge to add volume.'}
 - Seiler 80/20: if athlete is doing quality today, ALL other days this week should be genuinely easy (zone 1-2).
 
-Format your response EXACTLY like this (no markdown, no asterisks):
-TITLE: [specific workout name, max 7 words]
+Be extremely concise. No fluff. Every word must earn its place.
+
+Format EXACTLY like this:
+TITLE: [max 6 words]
 STATUS: [GREEN / YELLOW / RED]
-FRAMEWORK: [single sentence: which framework is primary driver and why]
+FRAMEWORK: [10 words max — which framework and why]
 RECOMMENDATION:
-[Paragraph 1: Exact workout prescription. Distance, pace, HR targets, structure. Be specific — "run 5 miles at 8:15-8:30/mi, HR below 140bpm" not "run easy".]
-[Paragraph 2: Recovery rationale. Cite exact biometric values. Why this specific load today given the data.]
-[Paragraph 3: Execution cues. What to watch for. When to cut short. HR drift thresholds. How effort should feel.]
-[Paragraph 4: Strategic context. How this fits the 25-week build. What it unlocks for future weeks.]`;
+[2-3 sentences: exact workout — distance, pace, HR target. Nothing else.]
+[1-2 sentences: why, citing specific biometric values only.]
+[1-2 sentences: one key execution cue and when to bail.]`;
 
   try{
     const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
@@ -1014,7 +1021,7 @@ async function syncAll(){
   try{const r=await fetch(`${RW}/whoop/sync`);const d=await r.json();st.textContent=d.success?'Whoop synced':'Whoop failed'}
   catch(e){st.textContent='Sync error'}
   st.textContent='Refreshing data...';
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns()]);
   await Promise.all([generateRec(),loadUpcoming()]);
   btn.disabled=false;icon.classList.remove('spin');
   const syncTime=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -1067,7 +1074,7 @@ async function sendChat(){
   if(!chatOpen){chatOpen=true;$('chat-panel').classList.add('open')}
   addMsg('user',text);input.value='';sendBtn.disabled=true;addTyping();
   chatHistory.push({role:'user',content:text});
-  const sys=`You are CoachClaude, an elite marathon coach. Be direct, specific, and always reference the athlete's actual data. Keep responses under 250 words unless complexity requires more. Use Daniels, Pfitzinger, Seiler, and Huberman frameworks explicitly.\n\n${buildContext()}`;
+  const sys=`You are CoachClaude, an elite marathon coach. Be extremely concise and direct. Max 100 words per response. Reference actual data values. No preamble, no fluff. Lead with the answer.\n\n${buildContext()}`;
   try{
     const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,system:sys,messages:chatHistory.slice(-12)})});
     const data=await res.json();
@@ -1134,16 +1141,8 @@ async function loadTodaysRuns(){
     `select=*&start=gte.${startOfDay.toISOString()}&start=lte.${endOfDay.toISOString()}&order=start.desc`
   ).catch(()=>[]);
 
-  // Also check yesterday if nothing today (Garmin often syncs late)
+  // Only show today's workouts — don't pull yesterday
   let allWorkouts=workouts||[];
-  if(!allWorkouts.length){
-    const yest=new Date(startOfDay);yest.setDate(yest.getDate()-1);
-    const yestEnd=new Date(yest);yestEnd.setHours(23,59,59,999);
-    const yestW=await get('health_workouts',
-      `select=*&start=gte.${yest.toISOString()}&start=lte.${yestEnd.toISOString()}&order=start.desc`
-    ).catch(()=>[]);
-    allWorkouts=yestW||[];
-  }
 
   // Filter to runs only, prefer Outdoor Run over Run duplicates
   const runTypes=['Outdoor Run','Run','Trail Run','Treadmill Running'];
@@ -1492,6 +1491,136 @@ function renderChart(streams, mode) {
   });
 }
 
+async function loadUnloggedRuns(){
+  // Find runs in health_workouts from last 7 days that haven't been logged
+  const since=new Date();since.setDate(since.getDate()-7);
+  const sinceStr=since.toISOString();
+  const td=today();
+
+  const [workouts, logs] = await Promise.all([
+    get('health_workouts',
+      `select=*&workout_type=in.(Outdoor%20Run,Run,Trail%20Run)&start=gte.${sinceStr}&order=start.desc&limit=20`
+    ).catch(()=>[]),
+    get('training_log',
+      `select=log_date,run_distance_miles&log_date=gte.${since.toISOString().split('T')[0]}&order=log_date.desc`
+    ).catch(()=>[])
+  ]);
+
+  if(!workouts?.length){return;}
+
+  // Dedup workouts — prefer Outdoor Run
+  const byStart=new Map();
+  for(const w of workouts){
+    const key=w.start?.slice(0,10); // group by date
+    const ex=byStart.get(key);
+    if(!ex||(w.distance_miles&&!ex.distance_miles)||w.workout_type==='Outdoor Run')byStart.set(key,w);
+  }
+
+  // Find which dates have no logged run
+  const loggedDates=new Set((logs||[]).filter(l=>l.run_distance_miles>0).map(l=>l.log_date));
+  
+  const unlogged=Array.from(byStart.values()).filter(w=>{
+    const date=new Date(w.start).toLocaleDateString('en-US',{timeZone:'America/Chicago'});
+    const d=new Date(w.start);
+    const central=new Date(d.toLocaleString('en-US',{timeZone:'America/Chicago'}));
+    const dateStr=central.getFullYear()+'-'+String(central.getMonth()+1).padStart(2,'0')+'-'+String(central.getDate()).padStart(2,'0');
+    return dateStr!==td && !loggedDates.has(dateStr);
+  });
+
+  const wrap=$('unlogged-wrap');
+  if(!unlogged.length){wrap.innerHTML='';return;}
+
+  wrap.innerHTML=`
+    <p class="sl">Unlogged runs</p>
+    ${unlogged.map((w,i)=>{
+      const d=new Date(w.start);
+      const central=new Date(d.toLocaleString('en-US',{timeZone:'America/Chicago'}));
+      const dateStr=central.getFullYear()+'-'+String(central.getMonth()+1).padStart(2,'0')+'-'+String(central.getDate()).padStart(2,'0');
+      const dayLabel=central.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      const paceS=w.distance_miles&&w.duration_minutes?(w.duration_minutes*60)/w.distance_miles:null;
+      const paceDisplay=fmtPace(paceS);
+      const durDisplay=fmtDur(w.duration_minutes);
+
+      return`<div class="hc" id="unlogged-${i}" style="border-color:var(--yellow);border-left:3px solid var(--yellow)">
+        <div class="hh">
+          <span class="hd">${dayLabel}</span>
+          <span class="hbg" style="background:var(--yellow-bg);color:var(--yellow)">unlogged</span>
+        </div>
+        <div class="ht">${w.workout_type} · ${w.distance_miles?w.distance_miles.toFixed(2)+'mi':''} · ${durDisplay} · ${paceDisplay} · ${w.heart_rate_avg?Math.round(w.heart_rate_avg)+' bpm avg HR':''}</div>
+        <div style="margin-top:10px">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">RPE</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="ul-rpe-${i}">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="rc-btn" onclick="selUnloggedRPE(${i},${n},this)">${n}</button>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Type</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="ul-wt-${i}">
+            ${['easy','tempo','marathon_pace','long','interval','recovery'].map(t=>`<button class="tb" onclick="selUnloggedWT(${i},'${t}',this)">${t.replace('_',' ')}</button>`).join('')}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" style="margin-top:0" onclick="confirmUnlogged(${i},'${dateStr}')">Log this run →</button>
+            <button onclick="dismissUnlogged(${i})" style="padding:10px 14px;background:none;border:1px solid var(--border2);border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px;white-space:nowrap">Dismiss</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+
+  window._unloggedRuns=unlogged;
+  window._unloggedRPE={};
+  window._unloggedWT={};
+}
+
+function selUnloggedRPE(idx,val,btn){
+  window._unloggedRPE[idx]=val;
+  document.querySelectorAll(`#ul-rpe-${idx} .rc-btn`).forEach(b=>b.classList.remove('sl'));
+  btn.classList.add('sl');
+}
+
+function selUnloggedWT(idx,val,btn){
+  window._unloggedWT[idx]=val;
+  document.querySelectorAll(`#ul-wt-${idx} .tb`).forEach(b=>b.classList.remove('sl'));
+  btn.classList.add('sl');
+}
+
+function dismissUnlogged(idx){
+  const card=$(`unlogged-${idx}`);
+  if(card)card.remove();
+}
+
+async function confirmUnlogged(idx,dateStr){
+  const w=window._unloggedRuns[idx];
+  const rpe=window._unloggedRPE[idx]||null;
+  const wt=window._unloggedWT[idx]||null;
+  if(!rpe){alert('Please select an RPE before logging.');return;}
+
+  const paceS=w.distance_miles&&w.duration_minutes?(w.duration_minutes*60)/w.distance_miles:null;
+
+  await Promise.all([
+    post('training_log',{
+      log_date:dateStr,
+      run_distance_miles:w.distance_miles||null,
+      run_duration_minutes:w.duration_minutes||null,
+      run_rpe:rpe,
+      workout_type:wt,
+      run_notes:'Logged from backlog',
+      log_type:'daily_run'
+    },'log_date'),
+    post('health_history',{
+      date:dateStr,
+      run_distance_miles:w.distance_miles||null,
+      run_duration_minutes:w.duration_minutes||null,
+      hr_avg:w.heart_rate_avg||null,
+      run_pace_seconds:paceS?Math.round(paceS):null
+    },'date')
+  ]);
+
+  const card=$(`unlogged-${idx}`);
+  if(card){
+    card.style.borderColor='var(--green)';
+    card.innerHTML=`<div class="hh"><span class="hd">Logged ✓</span><span class="hbg lg">saved</span></div><div class="ht">${w.workout_type} · ${w.distance_miles?.toFixed(2)}mi · ${fmtPace(paceS)} · RPE ${rpe}/10</div>`;
+  }
+  await loadHistory();
+}
+
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
   // Show last synced time from localStorage
@@ -1501,7 +1630,7 @@ async function init(){
     const isToday=d.toDateString()===new Date().toDateString();
     $('last-synced').textContent='Last synced: '+(isToday?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
   }
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
 init();
