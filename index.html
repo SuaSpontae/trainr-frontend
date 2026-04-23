@@ -966,7 +966,7 @@ RECOMMENDATION:
 [1-2 sentences: one key execution cue and when to bail.]`;
 
   try{
-    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content?.[0]?.text||'';
     const tm=text.match(/TITLE:\s*(.+)/),sm=text.match(/STATUS:\s*(\w+)/),fm=text.match(/FRAMEWORK:\s*(.+)/),rm=text.match(/RECOMMENDATION:\s*([\s\S]+)/);
@@ -1029,7 +1029,8 @@ async function syncAll(){
   const syncTime=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   st.textContent='All data updated';
   $('last-synced').textContent='Last synced: '+syncTime;
-  localStorage.setItem('lastSynced', new Date().toISOString());
+  // Store in Supabase so it persists across devices
+  await post('health_history',{date:today(),last_synced_at:new Date().toISOString()},'date');
 }
 
 async function submitLog(){
@@ -1075,10 +1076,24 @@ async function sendChat(){
   const text=input.value.trim();if(!text)return;
   if(!chatOpen){chatOpen=true;$('chat-panel').classList.add('open')}
   addMsg('user',text);input.value='';sendBtn.disabled=true;addTyping();
+
+  const isFirstMessage=chatHistory.length===0;
   chatHistory.push({role:'user',content:text});
-  const sys=`You are CoachClaude, an elite marathon coach. Be extremely concise and direct. Max 100 words per response. Reference actual data values. No preamble, no fluff. Lead with the answer.\n\n${buildContext()}`;
+
+  // Only send full context on first message — follow-ups just use conversation history
+  const sys=isFirstMessage
+    ? `You are CoachClaude, an elite marathon coach. Be extremely concise. Max 100 words. Lead with the answer. No preamble.
+
+${buildContext()}`
+    : `You are CoachClaude, an elite marathon coach. Be extremely concise. Max 100 words. Lead with the answer. No preamble.`;
+
+  // For follow-up messages only send recent history, not full context
+  const messages=isFirstMessage
+    ? chatHistory.slice(-1)
+    : chatHistory.slice(-8);
+
   try{
-    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,system:sys,messages:chatHistory.slice(-12)})});
+    const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,system:sys,messages})});
     const data=await res.json();
     const reply=data.content?.[0]?.text||'Connection error.';
     removeTyping();addMsg('coach',reply);
@@ -1625,13 +1640,14 @@ async function confirmUnlogged(idx,dateStr){
 
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
-  // Show last synced time from localStorage
-  const ls=localStorage.getItem('lastSynced');
-  if(ls){
-    const d=new Date(ls);
-    const isToday=d.toDateString()===new Date().toDateString();
-    $('last-synced').textContent='Last synced: '+(isToday?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-  }
+  // Load last synced time from Supabase
+  get('health_history',`select=last_synced_at&date=eq.${today()}&limit=1`).then(rows=>{
+    const ls=rows?.[0]?.last_synced_at;
+    if(ls){
+      const d=new Date(ls);
+      $('last-synced').textContent='Last synced: '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',timeZone:'America/Chicago'});
+    }
+  }).catch(()=>{});
   await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
