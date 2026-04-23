@@ -1003,7 +1003,6 @@ async function syncAll(){
   await post('health_history',{date:today(),last_synced_at:new Date().toISOString()},'date');
 }
 
-let chatHistory=[],chatOpen=false;
 function toggleChat(){
   chatOpen=!chatOpen;$('chat-panel').classList.toggle('open',chatOpen);
   if(chatOpen&&!chatHistory.length)addMsg('coach','Hi! I\'m CoachClaude. Ask me anything about your training — recovery, pacing, race strategy, or today\'s workout.');
