@@ -448,7 +448,7 @@ function weekStart(){
   return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
 }
 function pace(t){return{easy:'8:00–8:45/mi',medium:'8:00–8:30/mi',long:'8:00–8:45/mi',long_mp:'8:00–8:45/mi → 6:30–6:45/mi',tempo:'6:05–6:15/mi',tempo_cruise:'6:05–6:15/mi',marathon_pace:'6:30–6:45/mi',interval:'5:40–5:50/mi',strides:'8:00–8:45/mi + strides',recovery:'9:00+/mi',rest:'Rest day',race:'6:30/mi'}[t]||'—'}
-function wk(){const s=new Date('2026-04-20');const t=new Date();t.setHours(0,0,0,0);return Math.max(1,Math.ceil((t-s)/6048e5)+1)}
+function wk(){const s=new Date('2026-04-20');const t=new Date();t.setHours(0,0,0,0);return Math.max(1,Math.floor((t-s)/6048e5)+1)}
 function fmtPace(secs){if(!secs||secs>1200||secs<180)return'—';const m=Math.floor(secs/60),s=Math.round(secs%60);return`${m}:${String(s).padStart(2,'0')}/mi`}
 function fmtDur(mins){if(!mins)return'—';const h=Math.floor(mins/60),m=Math.floor(mins%60),s=Math.round((mins%1)*60);return h>0?`${h}h ${m}m`:`${m}m${s>0?' '+s+'s':''}`}
 
