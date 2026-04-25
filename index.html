@@ -485,7 +485,7 @@ async function loadToday(){
   const[health,plan,tl]=await Promise.all([
     get('health_history',`select=*&date=eq.${td}&limit=1`).catch(()=>[]),
     get('training_plan',`select=*&workout_date=eq.${td}&limit=1`).catch(()=>[]),
-    get('training_log',`select=ctl,atl,tsb&log_date=lte.${td}&order=log_date.desc&limit=1`).catch(()=>[])
+    get('training_log',`select=ctl,atl,tsb&log_date=lte.${td}&log_type=eq.daily_run&order=log_date.desc&limit=1`).catch(()=>[])
   ]);
   const h=health?.[0]||{},p=plan?.[0]||{},t=tl?.[0]||{};
   D.today=h;D.plan=p;
