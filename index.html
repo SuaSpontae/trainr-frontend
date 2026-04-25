@@ -336,9 +336,12 @@ textarea{resize:none;height:55px}
       <div class="type-row">
         <button class="tb" onclick="selWT(this,'easy')">Easy</button>
         <button class="tb" onclick="selWT(this,'tempo')">Tempo</button>
+        <button class="tb" onclick="selWT(this,'tempo_cruise')">Cruise intervals</button>
         <button class="tb" onclick="selWT(this,'marathon_pace')">Marathon pace</button>
         <button class="tb" onclick="selWT(this,'long')">Long run</button>
         <button class="tb" onclick="selWT(this,'interval')">Intervals</button>
+        <button class="tb" onclick="selWT(this,'long_mp')">Long + MP finish</button>
+        <button class="tb" onclick="selWT(this,'strides')">Strides</button>
         <button class="tb" onclick="selWT(this,'recovery')">Recovery</button>
       </div>
       <label style="margin-bottom:8px">RPE (1&ndash;10)</label>
@@ -444,7 +447,7 @@ function weekStart(){
   const d=c.getDay();c.setDate(c.getDate()-(d===0?6:d-1));
   return c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
 }
-function pace(t){return{easy:'8:00–8:45/mi',medium:'8:00–8:30/mi',long:'8:00–8:45/mi',tempo:'6:05–6:15/mi',marathon_pace:'6:30–6:45/mi',interval:'5:40–5:50/mi',recovery:'9:00+/mi',rest:'Rest',race:'6:30/mi'}[t]||'—'}
+function pace(t){return{easy:'8:00–8:45/mi',medium:'8:00–8:30/mi',long:'8:00–8:45/mi',long_mp:'8:00–8:45/mi → 6:30–6:45/mi',tempo:'6:05–6:15/mi',tempo_cruise:'6:05–6:15/mi',marathon_pace:'6:30–6:45/mi',interval:'5:40–5:50/mi',strides:'8:00–8:45/mi + strides',recovery:'9:00+/mi',rest:'Rest day',race:'6:30/mi'}[t]||'—'}
 function wk(){const s=new Date('2026-04-20');const t=new Date();t.setHours(0,0,0,0);return Math.max(1,Math.ceil((t-s)/6048e5)+1)}
 function fmtPace(secs){if(!secs||secs>1200||secs<180)return'—';const m=Math.floor(secs/60),s=Math.round(secs%60);return`${m}:${String(s).padStart(2,'0')}/mi`}
 function fmtDur(mins){if(!mins)return'—';const h=Math.floor(mins/60),m=Math.floor(mins%60),s=Math.round((mins%1)*60);return h>0?`${h}h ${m}m`:`${m}m${s>0?' '+s+'s':''}`}
@@ -766,14 +769,20 @@ Military athlete: weight objective data over subjective feel.
 
 Be extremely concise. No fluff.
 
+COACHING RULES:
+- Rest day (0 miles): Recommend rest. Never suggest running. Optional: easy walk or mobility only.
+- Scheduled run: Execute as planned. You may suggest shortening if recovery is poor, or a minor extension (max +1mi) only if recovery >80 and HRV above baseline — never more.
+- Never jump from rest to a full run. Never exceed plan by more than 1 mile.
+- Modifications must be explicitly justified with biometric values.
+
 Format EXACTLY:
 TITLE: [max 6 words]
 STATUS: [GREEN / YELLOW / RED]
 FRAMEWORK: [10 words max]
 RECOMMENDATION:
-[2-3 sentences: exact workout — distance, pace, HR target.]
+[2-3 sentences: today's prescription — strictly plan-based with justified modifications only.]
 [1-2 sentences: why, citing specific biometric values.]
-[1-2 sentences: one execution cue and bail condition.]`;
+[1-2 sentences: one execution cue or recovery note.]`;
 
   try{
     const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
