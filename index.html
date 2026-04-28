@@ -343,6 +343,7 @@ textarea{resize:none;height:55px}
         <button class="tb" onclick="selWT(this,'long_mp')">Long + MP finish</button>
         <button class="tb" onclick="selWT(this,'strides')">Strides</button>
         <button class="tb" onclick="selWT(this,'recovery')">Recovery</button>
+        <button class="tb" onclick="selWT(this,'treadmill')">Treadmill</button>
       </div>
       <label style="margin-bottom:8px">RPE (1&ndash;10)</label>
       <div class="rpe-row">
@@ -830,10 +831,31 @@ async function loadTodaysRuns(){
   const startOfDay=new Date(now);startOfDay.setHours(0,0,0,0);
   const endOfDay=new Date(now);endOfDay.setHours(23,59,59,999);
   const workouts=await get('health_workouts',`select=*&start=gte.${startOfDay.toISOString()}&start=lte.${endOfDay.toISOString()}&order=start.desc`).catch(()=>[]);
-  const runs=(workouts||[]).filter(w=>['Outdoor Run','Run','Trail Run','Treadmill Running'].some(t=>w.workout_type?.includes(t)));
-  const byStart=new Map();
-  for(const w of runs){const key=w.start?.slice(0,16);const ex=byStart.get(key);if(!ex||(w.distance_miles&&!ex.distance_miles)||w.workout_type==='Outdoor Run')byStart.set(key,w)}
-  const dedupedRuns=Array.from(byStart.values());
+  // Exclude generic "Run" from Whoop — only GPS runs from Garmin
+  const runs=(workouts||[]).filter(w=>['Outdoor Run','Trail Run','Indoor Run','Treadmill Running'].includes(w.workout_type));
+  // Combine multiple runs per day into one entry
+  const byDate2=new Map();
+  for(const w of runs){
+    const central=new Date(new Date(w.start).toLocaleString('en-US',{timeZone:'America/Chicago'}));
+    const dk=central.getFullYear()+'-'+String(central.getMonth()+1).padStart(2,'0')+'-'+String(central.getDate()).padStart(2,'0');
+    if(!byDate2.has(dk)){
+      byDate2.set(dk,{...w,distance_miles:w.distance_miles||0,duration_minutes:w.duration_minutes||0,_hrs:[w.heart_rate_avg].filter(Boolean),runCount:1});
+    } else {
+      const ex=byDate2.get(dk);
+      ex.distance_miles=Math.round((ex.distance_miles+(w.distance_miles||0))*100)/100;
+      ex.duration_minutes=Math.round(ex.duration_minutes+(w.duration_minutes||0));
+      if(w.heart_rate_avg)ex._hrs.push(w.heart_rate_avg);
+      if(w.heart_rate_max>ex.heart_rate_max)ex.heart_rate_max=w.heart_rate_max;
+      ex.elevation_gain_ft=(ex.elevation_gain_ft||0)+(w.elevation_gain_ft||0);
+      ex.energy_burned_kcal=(ex.energy_burned_kcal||0)+(w.energy_burned_kcal||0);
+      ex.runCount++;
+    }
+  }
+  for(const v of byDate2.values()){
+    v.heart_rate_avg=v._hrs.length?Math.round(v._hrs.reduce((a,b)=>a+b,0)/v._hrs.length):null;
+    delete v._hrs;
+  }
+  const dedupedRuns=Array.from(byDate2.values());
   const logged=await get('training_log',`select=log_date,run_distance_miles&log_date=eq.${td}&log_type=eq.daily_run&limit=1`).catch(()=>[]);
   const alreadyLogged=logged?.[0]?.run_distance_miles>0;
   const wrap=$('todays-runs-wrap');
@@ -913,7 +935,7 @@ async function loadUnloggedRuns(){
   const since=new Date();since.setDate(since.getDate()-7);
   const td=today();
   const[workouts,logs]=await Promise.all([
-    get('health_workouts',`select=*&workout_type=in.(Outdoor%20Run,Run,Trail%20Run)&start=gte.${since.toISOString()}&order=start.desc&limit=20`).catch(()=>[]),
+    get('health_workouts',`select=*&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${since.toISOString()}&order=start.desc&limit=20`).catch(()=>[]),
     get('training_log',`select=log_date,run_distance_miles&log_date=gte.${since.toISOString().split('T')[0]}&log_type=eq.daily_run&order=log_date.desc`).catch(()=>[])
   ]);
   if(!workouts?.length)return;
@@ -922,7 +944,7 @@ async function loadUnloggedRuns(){
     const central=new Date(new Date(w.start).toLocaleString('en-US',{timeZone:'America/Chicago'}));
     const key=central.getFullYear()+'-'+String(central.getMonth()+1).padStart(2,'0')+'-'+String(central.getDate()).padStart(2,'0');
     const ex=byDate.get(key);
-    if(!ex||(w.distance_miles&&!ex.distance_miles)||w.workout_type==='Outdoor Run')byDate.set(key,{w,date:key});
+    if(!ex||(w.distance_miles&&!ex.distance_miles)||w.['Outdoor Run','Trail Run','Indoor Run','Treadmill Running'].includes(w.workout_type))byDate.set(key,{w,date:key});
   }
   const loggedDates=new Set((logs||[]).filter(l=>l.run_distance_miles>0).map(l=>l.log_date));
   const unlogged=Array.from(byDate.values()).filter(({date})=>date!==td&&!loggedDates.has(date));
@@ -969,9 +991,9 @@ let runChartInstance=null,runStreamData=null,currentChartMode='hr';
 function switchChart(mode,btn){currentChartMode=mode;document.querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('ac'));btn.classList.add('ac');if(runStreamData)renderChart(runStreamData,mode)}
 
 async function loadRunChart(){
-  const workouts=await get('health_workouts',`select=id,start,distance_miles,duration_minutes,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,workout_type&workout_type=in.(Outdoor%20Run,Run,Trail%20Run)&order=start.desc&limit=1`).catch(()=>[]);
+  const workouts=await get('health_workouts',`select=id,start,distance_miles,duration_minutes,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,workout_type&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&order=start.desc&limit=1`).catch(()=>[]);
   const w=workouts?.[0];
-  if(!w){$('run-chart-card').innerHTML='<div class="no-stream">No runs found yet. Run, sync, and your analysis will appear here.</div>';return}
+  if(!w){$('run-chart-card').innerHTML='<div class="no-stream">No runs found yet.<br>After your run: Garmin Connect → Health Auto Export → Sync. Chart will appear automatically.</div>';return}
   const startDate=new Date(w.start);
   $('run-chart-title').textContent=startDate.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+` · ${w.distance_miles?.toFixed(2)||'?'} mi · ${fmtPace(w.pace_per_mile_seconds)||'?'}`;
   $('cs-avghr').textContent=w.heart_rate_avg?Math.round(w.heart_rate_avg)+' bpm':'—';
