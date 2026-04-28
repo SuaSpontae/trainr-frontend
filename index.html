@@ -944,7 +944,7 @@ async function loadUnloggedRuns(){
     const central=new Date(new Date(w.start).toLocaleString('en-US',{timeZone:'America/Chicago'}));
     const key=central.getFullYear()+'-'+String(central.getMonth()+1).padStart(2,'0')+'-'+String(central.getDate()).padStart(2,'0');
     const ex=byDate.get(key);
-    if(!ex||(w.distance_miles&&!ex.distance_miles)||w.['Outdoor Run','Trail Run','Indoor Run','Treadmill Running'].includes(w.workout_type))byDate.set(key,{w,date:key});
+    if(!ex||(w.distance_miles&&!ex.distance_miles)||['Outdoor Run','Trail Run','Indoor Run','Treadmill Running'].includes(w.workout_type))byDate.set(key,{w,date:key});
   }
   const loggedDates=new Set((logs||[]).filter(l=>l.run_distance_miles>0).map(l=>l.log_date));
   const unlogged=Array.from(byDate.values()).filter(({date})=>date!==td&&!loggedDates.has(date));
