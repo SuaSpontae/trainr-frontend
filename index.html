@@ -373,8 +373,8 @@ textarea{resize:none;height:55px}
     <h3 id="run-chart-title">Loading...</h3>
     <div class="chart-tabs">
       <button class="chart-tab ac" onclick="switchChart('hr',this)">Heart Rate</button>
-      <button class="chart-tab" onclick="switchChart('pace',this)">Pace</button>
-      <button class="chart-tab" onclick="switchChart('both',this)">Both</button>
+      <button class="chart-tab" id="pace-tab" onclick="switchChart('pace',this)">Pace</button>
+      <button class="chart-tab" id="both-tab" onclick="switchChart('both',this)">Both</button>
     </div>
   </div>
   <div class="chart-wrap"><canvas id="run-chart"></canvas></div>
@@ -575,7 +575,26 @@ async function loadWeekStats(){
   $('wk-mi-l').textContent=pt?`of ${pt} mi target`:'miles this week';
   const runsWithPace=wl.filter(l=>l.run_distance_miles>0&&l.run_duration_minutes>0);
   if(runsWithPace.length){const avg=runsWithPace.reduce((s,l)=>s+((l.run_duration_minutes*60)/l.run_distance_miles),0)/runsWithPace.length;const el=$('wk-avg-pace');if(el)el.textContent=fmtPace(avg);}
-  const w=wk();$('wk-pred').textContent=w<3?'building...':wmi>22?'2:51':wmi>15?'2:53':wmi>8?'2:55':'2:58';
+  // Race prediction based on recent avg pace + CTL fitness adjustment
+  const tl=D.log?.find(l=>l.log_type==='daily_run'&&l.ctl>0);
+  const ctl=tl?.ctl||0;
+  const runsWithPaceArr=(logs||[]).filter(l=>l.log_type==='daily_run'&&l.run_distance_miles>0&&l.run_duration_minutes>0);
+  if(runsWithPaceArr.length>=3&&ctl>0){
+    // Avg pace from recent easy runs
+    const avgPaceSecs=runsWithPaceArr.slice(0,5).reduce((s,l)=>s+(l.run_duration_minutes*60/l.run_distance_miles),0)/Math.min(runsWithPaceArr.length,5);
+    // Daniels marathon factor: easy pace ~1.33x marathon pace
+    const mpPace=avgPaceSecs/1.33;
+    // CTL adjustment: higher fitness = faster (every 10 CTL ≈ 1% faster)
+    const ctlAdj=1-(Math.max(0,ctl-40)*0.001);
+    const adjPace=mpPace*ctlAdj;
+    const finishSecs=adjPace*26.2188;
+    const h=Math.floor(finishSecs/3600);
+    const m=Math.floor((finishSecs%3600)/60);
+    const s=Math.round(finishSecs%60);
+    $('wk-pred').textContent=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  } else {
+    $('wk-pred').textContent=ctl>0?'need 3+ runs':'building...';
+  }
 
   // Prefill today's run only
   const td2=today();
@@ -787,7 +806,10 @@ RECOMMENDATION:
 
   try{
     const res=await fetch(`${RW}/claude`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
-    const data=await res.json();const text=data.content?.[0]?.text||'';
+    const data=await res.json();
+    if(data.error){console.error('Claude API error:',data.error);body.textContent='AI error: '+JSON.stringify(data.error);return;}
+    const text=data.content?.[0]?.text||'';
+    console.log('Claude response type:',data.content?.[0]?.type,'text length:',text.length);
     const tm=text.match(/TITLE:\s*(.+)/),sm=text.match(/STATUS:\s*(\w+)/),fm=text.match(/FRAMEWORK:\s*(.+)/),rm=text.match(/RECOMMENDATION:\s*([\s\S]+)/);
     const rt=tm?.[1]?.trim()||"Today's workout",status=sm?.[1]?.trim()||'GREEN',fw=fm?.[1]?.trim()||'',rec=rm?.[1]?.trim()||text;
     title.textContent=rt;body.textContent=rec;
@@ -1008,6 +1030,12 @@ async function loadRunChart(){
 
 function renderChart(streams,mode){
   const canvas=$('run-chart');if(!canvas)return;
+  // Check if pace data exists
+  const hasPace=streams.some(s=>s.pace_seconds_per_mile>0);
+  const paceTab=$('pace-tab'),bothTab=$('both-tab');
+  if(paceTab){paceTab.style.opacity=hasPace?'1':'0.4';paceTab.title=hasPace?'':'Pace data not available — Garmin sends speed as summary only';}
+  if(bothTab){bothTab.style.opacity=hasPace?'1':'0.4';bothTab.title=hasPace?'':'Pace data not available';}
+  if(!hasPace&&(mode==='pace'||mode==='both')){mode='hr';}
   if(runChartInstance){runChartInstance.destroy();runChartInstance=null}
   const step=Math.max(1,Math.floor(streams.length/60));
   const sampled=streams.filter((_,i)=>i%step===0);
