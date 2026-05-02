@@ -374,6 +374,7 @@ textarea{resize:none;height:55px}
     <h3 id="run-chart-title">Loading...</h3>
     <div class="chart-tabs">
       <button class="chart-tab ac" onclick="switchChart('hr',this)">Heart Rate</button>
+      <button class="chart-tab" id="pace-tab" onclick="switchChart('pace',this)">Pace</button>
       <button class="chart-tab" id="both-tab" onclick="switchChart('both',this)">Both</button>
     </div>
   </div>
@@ -1080,24 +1081,22 @@ function renderChart(streams,mode){
   const canvas=$('run-chart');if(!canvas)return;
   const splits=currentRunDate?D.laps.filter(l=>l.workout_date===currentRunDate&&l.source==='split'&&l.avg_pace_seconds):[];
   const hasPace=splits.length>0||streams.some(s=>s.pace_seconds_per_mile>0||s.speed_mph>0);
-  const bothTab=$('both-tab');
-  if(bothTab){bothTab.style.opacity=hasPace?'1':'0.4';bothTab.disabled=!hasPace;}
-  if(!hasPace&&mode==='both'){mode='hr';}
+  [$('pace-tab'),$('both-tab')].forEach(t=>{if(t){t.style.opacity=hasPace?'1':'0.4';t.disabled=!hasPace;}});
+  if(!hasPace&&(mode==='pace'||mode==='both')){mode='hr';}
   if(runChartInstance){runChartInstance.destroy();runChartInstance=null}
   const step=Math.max(1,Math.floor(streams.length/60));
   const sampled=streams.filter((_,i)=>i%step===0);
   const labels=sampled.map(s=>Math.floor(s.timestamp_offset_seconds/60)+'m');
+  const getPaceData=()=>sampled.map(s=>{
+    if(splits.length){const p=paceForOffset(s.timestamp_offset_seconds,splits);return(p&&p>=180&&p<=1200)?p:null;}
+    let p=s.pace_seconds_per_mile;if((!p||p<180||p>1200)&&s.speed_mph>0)p=Math.round(3600/s.speed_mph);return(!p||p<180||p>1200)?null:p;
+  });
   const datasets=[];
   if(mode==='hr'||mode==='both'){datasets.push({label:'Heart Rate (bpm)',data:sampled.map(s=>s.heart_rate||null),borderColor:'#ef4444',backgroundColor:'#ef444415',fill:mode==='hr',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:'y'})}
-  if(mode==='both'){
-    const paceData=sampled.map(s=>{
-      if(splits.length){const p=paceForOffset(s.timestamp_offset_seconds,splits);return(p&&p>=180&&p<=1200)?p:null;}
-      let p=s.pace_seconds_per_mile;if((!p||p<180||p>1200)&&s.speed_mph>0)p=Math.round(3600/s.speed_mph);return(!p||p<180||p>1200)?null:p;
-    });
-    datasets.push({label:'Pace (min/mi)',data:paceData,borderColor:'#f59e0b',backgroundColor:'transparent',fill:false,stepped:'before',pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:'y2'});
-  }
-  const scales={x:{grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},maxTicksLimit:8}},y:{position:'left',grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},callback:(val)=>val+' bpm'}}};
-  if(mode==='both'){scales.y2={position:'right',reverse:true,grid:{drawOnChartArea:false},ticks:{color:'#f59e0b',font:{size:10},callback:(val)=>{const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`}}}}
+  if(mode==='pace'||mode==='both'){datasets.push({label:'Pace (min/mi)',data:getPaceData(),borderColor:'#f59e0b',backgroundColor:'#f59e0b15',fill:mode==='pace',stepped:'before',pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:mode==='both'?'y2':'y'})}
+  const paceTickCb=(val)=>{const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`};
+  const scales={x:{grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},maxTicksLimit:8}},y:{position:'left',reverse:mode==='pace',grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},callback:(val)=>mode==='pace'?paceTickCb(val):val+' bpm'}}};
+  if(mode==='both'){scales.y2={position:'right',reverse:true,grid:{drawOnChartArea:false},ticks:{color:'#f59e0b',font:{size:10},callback:paceTickCb}}}
   runChartInstance=new Chart(canvas,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:mode==='both',labels:{color:'#7070a0',font:{size:11}}},tooltip:{backgroundColor:'#18181f',borderColor:'#ffffff18',borderWidth:1,titleColor:'#e8e8f0',bodyColor:'#7070a0',callbacks:{label:(ctx)=>{const val=ctx.raw;if(!val)return null;if(ctx.dataset.label?.includes('Pace')){const m=Math.floor(val/60),s=val%60;return` Pace: ${m}:${String(s).padStart(2,'0')}/mi`}return` HR: ${Math.round(val)} bpm`}}}},scales}});
 }
 
@@ -1197,8 +1196,8 @@ async function loadSnapshot(){
 
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns(),loadSnapshot(),checkStravaStatus()]);
-  await Promise.all([generateRec(),loadUpcoming()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadUnloggedRuns(),loadSnapshot(),checkStravaStatus()]);
+  await Promise.all([loadRunChart(),generateRec(),loadUpcoming()]);
 }
 init();
 </script>
