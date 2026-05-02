@@ -1081,7 +1081,8 @@ function paceForOffset(offsetSecs,splits){
 
 function renderChart(streams,mode){
   const canvas=$('run-chart');if(!canvas)return;
-  const splits=currentRunDate?D.laps.filter(l=>l.workout_date===currentRunDate&&l.source==='split'&&l.avg_pace_seconds):[];
+  let splits=currentRunDate?D.laps.filter(l=>l.workout_date===currentRunDate&&l.source==='split'&&l.avg_pace_seconds):[];
+  if(!splits.length){const dates=[...new Set(D.laps.filter(l=>l.source==='split'&&l.avg_pace_seconds).map(l=>l.workout_date))].sort().reverse();if(dates.length)splits=D.laps.filter(l=>l.workout_date===dates[0]&&l.source==='split'&&l.avg_pace_seconds);}
   const hasPace=splits.length>0||streams.some(s=>s.pace_seconds_per_mile>0||s.speed_mph>0);
   [$('pace-tab'),$('both-tab')].forEach(t=>{if(t){t.style.opacity=hasPace?'1':'0.4';t.disabled=!hasPace;}});
   if(!hasPace&&(mode==='pace'||mode==='both')){mode='hr';}
