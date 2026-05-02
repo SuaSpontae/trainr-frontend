@@ -205,6 +205,7 @@ textarea{resize:none;height:55px}
 
 <div class="sync-row">
   <button class="sync-btn" onclick="syncAll()" id="sync-btn"><span class="sync-icon" id="sync-icon">↻</span> Sync</button>
+  <a id="strava-btn" href="https://health-receiver-production.up.railway.app/strava/auth" target="_blank" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:100px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;transition:all .2s" onmouseover="this.style.borderColor='#fc4c02';this.style.color='#fc4c02'" onmouseout="this.style.borderColor='';this.style.color='var(--muted)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fc4c02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg><span id="strava-label">Connect Strava</span></a>
   <div><span class="sync-st" id="sync-st">Tap to sync Whoop &amp; Health</span><div style="font-size:11px;color:var(--dim);margin-top:2px" id="last-synced"></div></div>
 </div>
 
@@ -382,6 +383,7 @@ textarea{resize:none;height:55px}
     <div class="cs"><div class="cv" id="cs-avgpace" style="color:var(--yellow)">—</div><div class="cl">avg pace</div></div>
     <div class="cs"><div class="cv" id="cs-best" style="color:var(--green)">—</div><div class="cl">best mile</div></div>
   </div>
+  <div id="lap-splits"></div>
 </div>
 
 <p class="sl">Daniels VDOT 54 pace zones</p>
@@ -419,7 +421,7 @@ const RW='https://health-receiver-production.up.railway.app';
 const RACE=new Date('2026-10-11');
 let HRV_BASE=68.1,RHR_BASE=51.8,DEEP_BASE=1.38,REC_BASE=57,PEAK_BASE=32.1;
 let selRPEVal=null,selWTVal=null,chatHistory=[],chatOpen=false;
-let D={today:{},plan:{},log:[],history:[],workouts:[]};
+let D={today:{},plan:{},log:[],history:[],workouts:[],laps:[]};
 const $=id=>document.getElementById(id);
 function selRPE(b,v){selRPEVal=v;document.querySelectorAll('.rb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
 function selWT(b,v){selWTVal=v;document.querySelectorAll('.tb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
@@ -608,12 +610,14 @@ async function loadWeekStats(){
 async function loadHistory(){
   const since=new Date();since.setDate(since.getDate()-14);
   const sinceStr=since.toISOString().split('T')[0];
-  const[data,workouts]=await Promise.all([
+  const[data,workouts,laps]=await Promise.all([
     get('training_log',`select=*&log_date=gte.${sinceStr}&order=log_date.desc,log_type.asc&limit=42`).catch(()=>[]),
-    get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type,elevation_gain_ft&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[])
+    get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type,elevation_gain_ft&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[]),
+    get('workout_laps',`select=*&workout_date=gte.${sinceStr}&order=workout_date.desc,lap_index.asc&limit=300`).catch(()=>[])
   ]);
   D.history=data||[];
   D.workouts=workouts||[];
+  D.laps=laps||[];
   const c=$('hist-list');
   if(!data?.length){c.innerHTML='<div style="font-size:13px;color:var(--dim);text-align:center;padding:20px">No history yet.</div>';return}
 
@@ -778,12 +782,14 @@ ${D.history.length?D.history.slice(0,7).map(l=>{
     `RPE ${l.run_rpe||'?'}/10`,
     wo?.heart_rate_avg?`avg ${Math.round(wo.heart_rate_avg)}bpm`:'',
     wo?.heart_rate_max?`max ${Math.round(wo.heart_rate_max)}bpm`:'',
-    wo?.pace_per_mile_seconds?fmtPace(wo.pace_per_mile_seconds)+'/mi':'',
-    wo?.elevation_gain_ft?`+${Math.round(wo.elevation_gain_ft)}ft elev`:'',
+    wo?.pace_per_mile_seconds?fmtPace(wo.pace_per_mile_seconds):'',
+    wo?.elevation_gain_ft?`+${Math.round(wo.elevation_gain_ft)}ft`:'',
     l.workout_type?l.workout_type.replace(/_/g,' '):'',
     l.run_notes?`"${l.run_notes}"`:'',
   ].filter(Boolean).join(' '):'not logged';
-  return`${d}: ${l.recommendation_title||'workout'} → ${logged}`;
+  const lapRows=D.laps.filter(lap=>lap.workout_date===l.log_date);
+  const lapStr=lapRows.length?'\n'+lapRows.map(lap=>`    ${lapRows.some(x=>x.lap_type==='manual')?'Lap':'Mile'} ${lap.lap_index}: ${lap.avg_pace_seconds?fmtPace(lap.avg_pace_seconds):'—'}${lap.avg_hr?' '+lap.avg_hr+'bpm':''}`).join('\n'):'';
+  return`${d}: ${l.recommendation_title||'workout'} → ${logged}${lapStr}`;
 }).join('\n'):'No history yet.'}`;
 }
 
@@ -1044,6 +1050,8 @@ async function loadRunChart(){
   const pacePoints=streams.filter(s=>s.pace_seconds_per_mile>180&&s.pace_seconds_per_mile<1200);
   if(pacePoints.length){$('cs-best').textContent=fmtPace(Math.min(...pacePoints.map(s=>s.pace_seconds_per_mile)))||'—';}
   runStreamData=streams;renderChart(streams,'hr');
+  const runDate=new Date(w.start).toLocaleDateString('en-CA',{timeZone:'America/Chicago'});
+  renderLaps(runDate);
 }
 
 function renderChart(streams,mode){
@@ -1110,6 +1118,19 @@ async function sendChat(){
   sendBtn.disabled=false;
 }
 
+function renderLaps(date){
+  const el=$('lap-splits');if(!el)return;
+  const laps=D.laps.filter(l=>l.workout_date===date);
+  if(!laps.length){el.innerHTML='';return;}
+  const isManual=laps.some(l=>l.lap_type==='manual');
+  el.innerHTML=`<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">${isManual?'Lap Splits':'Mile Splits'}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px">${laps.map(l=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--dim);margin-bottom:2px">${isManual?'Lap':'Mile'} ${l.lap_index}</div><div style="font-size:14px;font-weight:700;color:var(--yellow)">${l.avg_pace_seconds?fmtPace(l.avg_pace_seconds):'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${[l.avg_hr?l.avg_hr+'bpm':'',l.elevation_gain_ft?(l.elevation_gain_ft>0?'+':'')+l.elevation_gain_ft+'ft':''].filter(Boolean).join(' · ')}</div></div>`).join('')}</div></div>`;
+}
+
+async function checkStravaStatus(){
+  try{const r=await fetch(`${RW}/strava/status`);const d=await r.json();
+  if(d.connected){const btn=$('strava-btn'),lbl=$('strava-label');if(lbl)lbl.textContent=d.athlete||'Strava ✓';if(btn){btn.style.borderColor='#fc4c02';btn.style.color='#fc4c02';}}}catch(e){}
+}
+
 async function loadSnapshot(){
   const since=new Date();since.setDate(since.getDate()-90);
   const rows=await get('health_history',`select=date,hrv_ms,whoop_recovery_score,sleep_deep_hrs,resting_hr,run_distance_miles&date=gte.${since.toISOString().split('T')[0]}&order=date.asc&limit=90`).catch(()=>[]);
@@ -1133,7 +1154,7 @@ async function loadSnapshot(){
 
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns(),loadSnapshot()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns(),loadSnapshot(),checkStravaStatus()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
 init();
