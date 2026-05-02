@@ -1035,7 +1035,7 @@ async function loadRunChart(){
 function renderChart(streams,mode){
   const canvas=$('run-chart');if(!canvas)return;
   // Check if pace data exists
-  const hasPace=streams.some(s=>s.pace_seconds_per_mile>0);
+  const hasPace=streams.some(s=>s.pace_seconds_per_mile>0||s.speed_mph>0);
   const paceTab=$('pace-tab'),bothTab=$('both-tab');
   if(paceTab){paceTab.style.opacity=hasPace?'1':'0.4';paceTab.title=hasPace?'':'Pace data not available — Garmin sends speed as summary only';}
   if(bothTab){bothTab.style.opacity=hasPace?'1':'0.4';bothTab.title=hasPace?'':'Pace data not available';}
@@ -1046,8 +1046,8 @@ function renderChart(streams,mode){
   const labels=sampled.map(s=>Math.floor(s.timestamp_offset_seconds/60)+'m');
   const datasets=[];
   if(mode==='hr'||mode==='both'){datasets.push({label:'Heart Rate (bpm)',data:sampled.map(s=>s.heart_rate||null),borderColor:'#ef4444',backgroundColor:'#ef444415',fill:mode==='hr',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:'y'})}
-  if(mode==='pace'||mode==='both'){datasets.push({label:'Pace (sec/mi)',data:sampled.map(s=>(!s.pace_seconds_per_mile||s.pace_seconds_per_mile<180||s.pace_seconds_per_mile>1200)?null:Math.round(s.pace_seconds_per_mile)),borderColor:'#f59e0b',backgroundColor:'#f59e0b15',fill:mode==='pace',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:mode==='both'?'y2':'y'})}
-  const scales={x:{grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},maxTicksLimit:8}},y:{position:'left',grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},callback:(val)=>{if(mode==='pace'){const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`}return val+(mode==='hr'?' bpm':'')}}}};
+  if(mode==='pace'||mode==='both'){datasets.push({label:'Pace (sec/mi)',data:sampled.map(s=>{let p=s.pace_seconds_per_mile;if((!p||p<180||p>1200)&&s.speed_mph>0)p=Math.round(3600/s.speed_mph);return(!p||p<180||p>1200)?null:p;}),borderColor:'#f59e0b',backgroundColor:'#f59e0b15',fill:mode==='pace',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:mode==='both'?'y2':'y'})}
+  const scales={x:{grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},maxTicksLimit:8}},y:{position:'left',reverse:mode==='pace',grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},callback:(val)=>{if(mode==='pace'){const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`}return val+(mode==='hr'?' bpm':'')}}}};
   if(mode==='both'){scales.y2={position:'right',grid:{drawOnChartArea:false},ticks:{color:'#f59e0b',font:{size:10},callback:(val)=>{const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`}},reverse:true}}
   runChartInstance=new Chart(canvas,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:mode==='both',labels:{color:'#7070a0',font:{size:11}}},tooltip:{backgroundColor:'#18181f',borderColor:'#ffffff18',borderWidth:1,titleColor:'#e8e8f0',bodyColor:'#7070a0',callbacks:{label:(ctx)=>{const val=ctx.raw;if(!val)return null;if(ctx.dataset.label?.includes('Pace')){const m=Math.floor(val/60),s=val%60;return` Pace: ${m}:${String(s).padStart(2,'0')}/mi`}return` HR: ${Math.round(val)} bpm`}}}},scales}});
 }
