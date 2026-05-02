@@ -1066,9 +1066,10 @@ async function loadRunChart(){
   runStreamData=streams;
   const runDate=new Date(w.start).toLocaleDateString('en-CA',{timeZone:'America/Chicago'});
   currentRunDate=runDate;
-  // best mile from splits if stream pace unavailable
-  const splits=D.laps.filter(l=>l.workout_date===runDate&&l.source==='split'&&l.avg_pace_seconds);
-  if(splits.length){const best=Math.min(...splits.map(s=>s.avg_pace_seconds));if(best)$('cs-best').textContent=fmtPace(best);}
+  // best mile from splits — try current run date, fall back to most recent available
+  let bSplits=D.laps.filter(l=>l.workout_date===runDate&&l.source==='split'&&l.avg_pace_seconds);
+  if(!bSplits.length){const dates=[...new Set(D.laps.filter(l=>l.source==='split'&&l.avg_pace_seconds).map(l=>l.workout_date))].sort().reverse();if(dates.length)bSplits=D.laps.filter(l=>l.workout_date===dates[0]&&l.source==='split'&&l.avg_pace_seconds);}
+  if(bSplits.length){const best=Math.min(...bSplits.map(s=>s.avg_pace_seconds));if(best)$('cs-best').textContent=fmtPace(best);}
   renderChart(streams,'hr');
   renderLaps(runDate);
 }
@@ -1096,7 +1097,7 @@ function renderChart(streams,mode){
   });
   const datasets=[];
   if(mode==='hr'||mode==='both'){datasets.push({label:'Heart Rate (bpm)',data:sampled.map(s=>s.heart_rate||null),borderColor:'#ef4444',backgroundColor:'#ef444415',fill:mode==='hr',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:'y'})}
-  if(mode==='pace'||mode==='both'){datasets.push({label:'Pace (min/mi)',data:getPaceData(),borderColor:'#f59e0b',backgroundColor:'#f59e0b15',fill:mode==='pace',stepped:'before',pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:mode==='both'?'y2':'y'})}
+  if(mode==='pace'||mode==='both'){datasets.push({label:'Pace (min/mi)',data:getPaceData(),borderColor:'#f59e0b',backgroundColor:'#f59e0b15',fill:mode==='pace',tension:0.4,pointRadius:0,pointHoverRadius:4,borderWidth:2,yAxisID:mode==='both'?'y2':'y'})}
   const paceTickCb=(val)=>{const m=Math.floor(val/60),s=val%60;return`${m}:${String(s).padStart(2,'0')}`};
   const scales={x:{grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},maxTicksLimit:8}},y:{position:'left',reverse:mode==='pace',grid:{color:'#ffffff08'},ticks:{color:'#7070a0',font:{size:10},callback:(val)=>mode==='pace'?paceTickCb(val):val+' bpm'}}};
   if(mode==='both'){scales.y2={position:'right',reverse:true,grid:{drawOnChartArea:false},ticks:{color:'#f59e0b',font:{size:10},callback:paceTickCb}}}
