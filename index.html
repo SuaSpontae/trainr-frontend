@@ -421,7 +421,7 @@ const RW='https://health-receiver-production.up.railway.app';
 const RACE=new Date('2026-10-11');
 let HRV_BASE=68.1,RHR_BASE=51.8,DEEP_BASE=1.38,REC_BASE=57,PEAK_BASE=32.1;
 let selRPEVal=null,selWTVal=null,chatHistory=[],chatOpen=false;
-let D={today:{},plan:{},log:[],history:[]};
+let D={today:{},plan:{},log:[],history:[],workouts:[]};
 const $=id=>document.getElementById(id);
 function selRPE(b,v){selRPEVal=v;document.querySelectorAll('.rb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
 function selWT(b,v){selWTVal=v;document.querySelectorAll('.tb').forEach(x=>x.classList.remove('sl'));b.classList.add('sl')}
@@ -609,8 +609,13 @@ async function loadWeekStats(){
 
 async function loadHistory(){
   const since=new Date();since.setDate(since.getDate()-14);
-  const data=await get('training_log',`select=*&log_date=gte.${since.toISOString().split('T')[0]}&order=log_date.desc,log_type.asc&limit=42`).catch(()=>[]);
+  const sinceStr=since.toISOString().split('T')[0];
+  const[data,workouts]=await Promise.all([
+    get('training_log',`select=*&log_date=gte.${sinceStr}&order=log_date.desc,log_type.asc&limit=42`).catch(()=>[]),
+    get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[])
+  ]);
   D.history=data||[];
+  D.workouts=workouts||[];
   const c=$('hist-list');
   if(!data?.length){c.innerHTML='<div style="font-size:13px;color:var(--dim);text-align:center;padding:20px">No history yet.</div>';return}
 
@@ -768,7 +773,16 @@ ${D.history.length?D.history.slice(0,7).map(l=>{
   const d=new Date(l.log_date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   if(l.log_type==='weekly_checkin')return`${d}: Weekly — feel ${l.weekly_feel}/10, stress ${l.weekly_stress}/10`;
   if(l.log_type==='morning_checkin')return`${d}: AM — fatigue ${l.subjective_fatigue}/10, soreness ${l.subjective_soreness}/10`;
-  const logged=l.run_distance_miles||l.run_duration_minutes?`${l.run_distance_miles?l.run_distance_miles.toFixed(1)+'mi':''} RPE ${l.run_rpe||'?'}/10 ${l.workout_type||''}`.trim():'not logged';
+  const wo=D.workouts.find(w=>w.start?.split('T')[0]===l.log_date);
+  const logged=l.run_distance_miles||l.run_duration_minutes?[
+    l.run_distance_miles?l.run_distance_miles.toFixed(1)+'mi':'',
+    `RPE ${l.run_rpe||'?'}/10`,
+    wo?.heart_rate_avg?`avg ${Math.round(wo.heart_rate_avg)}bpm`:'',
+    wo?.heart_rate_max?`max ${Math.round(wo.heart_rate_max)}bpm`:'',
+    wo?.pace_per_mile_seconds?fmtPace(wo.pace_per_mile_seconds)+'/mi':'',
+    l.workout_type?l.workout_type.replace(/_/g,' '):'',
+    l.run_notes?`"${l.run_notes}"`:'',
+  ].filter(Boolean).join(' '):'not logged';
   return`${d}: ${l.recommendation_title||'workout'} → ${logged}`;
 }).join('\n'):'No history yet.'}`;
 }
