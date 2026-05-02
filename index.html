@@ -487,7 +487,7 @@ async function loadToday(){
     get('training_log',`select=ctl,atl,tsb&log_date=lte.${td}&log_type=eq.daily_run&order=log_date.desc&limit=1`).catch(()=>[])
   ]);
   const h=health?.[0]||{},p=plan?.[0]||{},t=tl?.[0]||{};
-  D.today=h;D.plan=p;
+  D.today=h;D.plan=p;D.fitness=t;
   const w=wk();
   $('dout').textContent=daysLeft();$('wk-n').textContent=w;
   $('subhdr').textContent=`Oct 11 · Sub-2:50 · Week ${w} of 25 · ${p.phase||'Base Rebuild'}`;
@@ -610,7 +610,7 @@ async function loadHistory(){
   const sinceStr=since.toISOString().split('T')[0];
   const[data,workouts]=await Promise.all([
     get('training_log',`select=*&log_date=gte.${sinceStr}&order=log_date.desc,log_type.asc&limit=42`).catch(()=>[]),
-    get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[])
+    get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type,elevation_gain_ft&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[])
   ]);
   D.history=data||[];
   D.workouts=workouts||[];
@@ -764,6 +764,7 @@ function buildContext(){
   return`ATHLETE: Chicago Marathon Oct 11 2026, sub-2:50 (VDOT 54). First marathon. Military background. Week ${w}/25, phase: ${p.phase||'Base Rebuild'}.
 BASELINES: HRV ${HRV_BASE.toFixed(1)}ms, RHR ${RHR_BASE.toFixed(1)}bpm, deep sleep ${DEEP_BASE.toFixed(2)}hrs, avg recovery ${Math.round(REC_BASE)}/100, peak week ${PEAK_BASE.toFixed(1)}mi.
 TODAY: HRV ${h.hrv_ms?h.hrv_ms.toFixed(1)+'ms':' no data'}, recovery ${h.whoop_recovery_score?Math.round(h.whoop_recovery_score)+'/100':'no data'}, RHR ${h.resting_hr?Math.round(h.resting_hr):'no data'}, strain ${h.whoop_strain?h.whoop_strain.toFixed(1):'no data'}, sleep ${h.sleep_total_hrs?h.sleep_total_hrs.toFixed(1)+'h':''} deep ${h.sleep_deep_hrs?h.sleep_deep_hrs.toFixed(1):'?'}h REM ${h.sleep_rem_hrs?h.sleep_rem_hrs.toFixed(1):'?'}h, SpO2 ${h.spo2_percentage?h.spo2_percentage.toFixed(1)+'%':'no data'}.
+FITNESS: CTL ${D.fitness?.ctl?Math.round(D.fitness.ctl):'—'} (fitness), ATL ${D.fitness?.atl?Math.round(D.fitness.atl):'—'} (fatigue), TSB ${D.fitness?.tsb?Math.round(D.fitness.tsb):'—'} (form${D.fitness?.tsb?(D.fitness.tsb>5?' — fresh':D.fitness.tsb>-5?' — optimal':D.fitness.tsb>-15?' — slight fatigue':' — heavy fatigue'):''}).
 AM CHECK-IN: ${mci?('Fatigue '+mci.subjective_fatigue+'/10, soreness '+mci.subjective_soreness+'/10, motivation '+mci.subjective_motivation+'/10, nutrition '+mci.subjective_nutrition+'/10, stress '+mci.subjective_stress+'/10'+(mci.alcohol_units?', alcohol '+mci.alcohol_units:'')+(mci.body_weight_lbs?', weight '+mci.body_weight_lbs+'lbs':'')+(mci.morning_notes?', notes: '+mci.morning_notes:'')):'Not submitted'}
 PLAN: ${p.workout_type||'easy'} ${p.target_miles||0}mi @ ${pace(p.workout_type)} | Week target: ${p.week_total_miles||0}mi | Logged: ${wmi}mi
 HISTORY:
@@ -778,6 +779,7 @@ ${D.history.length?D.history.slice(0,7).map(l=>{
     wo?.heart_rate_avg?`avg ${Math.round(wo.heart_rate_avg)}bpm`:'',
     wo?.heart_rate_max?`max ${Math.round(wo.heart_rate_max)}bpm`:'',
     wo?.pace_per_mile_seconds?fmtPace(wo.pace_per_mile_seconds)+'/mi':'',
+    wo?.elevation_gain_ft?`+${Math.round(wo.elevation_gain_ft)}ft elev`:'',
     l.workout_type?l.workout_type.replace(/_/g,' '):'',
     l.run_notes?`"${l.run_notes}"`:'',
   ].filter(Boolean).join(' '):'not logged';
