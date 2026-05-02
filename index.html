@@ -359,12 +359,12 @@ textarea{resize:none;height:55px}
 <div style="height:1px;background:var(--border);margin:20px 0"></div>
 <p class="sl">Fitness snapshot</p>
 <div class="snap-grid">
-  <div class="snap"><div class="sl2">HRV baseline</div><div class="sv" style="color:var(--purple)">68.1 ms</div></div>
-  <div class="snap"><div class="sl2">Avg recovery</div><div class="sv" style="color:var(--green)">57 / 100</div></div>
-  <div class="snap"><div class="sl2">Avg deep sleep</div><div class="sv" style="color:var(--blue)">1.38 hrs</div></div>
-  <div class="snap"><div class="sl2">Peak week (90d)</div><div class="sv" style="color:var(--yellow)">32.1 mi</div></div>
-  <div class="snap"><div class="sl2">Total runs (90d)</div><div class="sv">56 runs</div></div>
-  <div class="snap"><div class="sl2">Total miles (90d)</div><div class="sv">276.5 mi</div></div>
+  <div class="snap"><div class="sl2">HRV baseline</div><div class="sv" id="snap-hrv" style="color:var(--purple)">—</div></div>
+  <div class="snap"><div class="sl2">Avg recovery</div><div class="sv" id="snap-rec" style="color:var(--green)">—</div></div>
+  <div class="snap"><div class="sl2">Avg deep sleep</div><div class="sv" id="snap-deep" style="color:var(--blue)">—</div></div>
+  <div class="snap"><div class="sl2">Peak week (90d)</div><div class="sv" id="snap-peak" style="color:var(--yellow)">—</div></div>
+  <div class="snap"><div class="sl2">Total runs (90d)</div><div class="sv" id="snap-runs">—</div></div>
+  <div class="snap"><div class="sl2">Total miles (90d)</div><div class="sv" id="snap-miles">—</div></div>
 </div>
 
 <p class="sl">Last run analysis</p>
@@ -419,7 +419,7 @@ const SB='https://pbeutvoyrvxxrsjtqtlm.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZXV0dm95cnZ4eHJzanRxdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NjU2NzcsImV4cCI6MjA5MjA0MTY3N30.fQ4kFDFv6aH1b4TuCdVyeyar5619QOcOXfXbpRJMqhE';
 const RW='https://health-receiver-production.up.railway.app';
 const RACE=new Date('2026-10-11');
-const HRV_BASE=68.1,RHR_BASE=51.8;
+let HRV_BASE=68.1,RHR_BASE=51.8,DEEP_BASE=1.38,REC_BASE=57,PEAK_BASE=32.1;
 let selRPEVal=null,selWTVal=null,chatHistory=[],chatOpen=false;
 let D={today:{},plan:{},log:[],history:[]};
 const $=id=>document.getElementById(id);
@@ -759,7 +759,7 @@ function buildContext(){
   const wmi=wl.reduce((s,l)=>s+(l.run_distance_miles||0),0).toFixed(1);
   const mci=D.history.find(l=>l.log_type==='morning_checkin'&&l.log_date===today());
   return`ATHLETE: Chicago Marathon Oct 11 2026, sub-2:50 (VDOT 54). First marathon. Military background. Week ${w}/25, phase: ${p.phase||'Base Rebuild'}.
-BASELINES: HRV 68.1ms, RHR 51.8bpm, deep sleep 1.38hrs, avg recovery 57/100, peak week 32.1mi.
+BASELINES: HRV ${HRV_BASE.toFixed(1)}ms, RHR ${RHR_BASE.toFixed(1)}bpm, deep sleep ${DEEP_BASE.toFixed(2)}hrs, avg recovery ${Math.round(REC_BASE)}/100, peak week ${PEAK_BASE.toFixed(1)}mi.
 TODAY: HRV ${h.hrv_ms?h.hrv_ms.toFixed(1)+'ms':' no data'}, recovery ${h.whoop_recovery_score?Math.round(h.whoop_recovery_score)+'/100':'no data'}, RHR ${h.resting_hr?Math.round(h.resting_hr):'no data'}, strain ${h.whoop_strain?h.whoop_strain.toFixed(1):'no data'}, sleep ${h.sleep_total_hrs?h.sleep_total_hrs.toFixed(1)+'h':''} deep ${h.sleep_deep_hrs?h.sleep_deep_hrs.toFixed(1):'?'}h REM ${h.sleep_rem_hrs?h.sleep_rem_hrs.toFixed(1):'?'}h, SpO2 ${h.spo2_percentage?h.spo2_percentage.toFixed(1)+'%':'no data'}.
 AM CHECK-IN: ${mci?('Fatigue '+mci.subjective_fatigue+'/10, soreness '+mci.subjective_soreness+'/10, motivation '+mci.subjective_motivation+'/10, nutrition '+mci.subjective_nutrition+'/10, stress '+mci.subjective_stress+'/10'+(mci.alcohol_units?', alcohol '+mci.alcohol_units:'')+(mci.body_weight_lbs?', weight '+mci.body_weight_lbs+'lbs':'')+(mci.morning_notes?', notes: '+mci.morning_notes:'')):'Not submitted'}
 PLAN: ${p.workout_type||'easy'} ${p.target_miles||0}mi @ ${pace(p.workout_type)} | Week target: ${p.week_total_miles||0}mi | Logged: ${wmi}mi
@@ -1096,9 +1096,30 @@ async function sendChat(){
   sendBtn.disabled=false;
 }
 
+async function loadSnapshot(){
+  const since=new Date();since.setDate(since.getDate()-90);
+  const rows=await get('health_history',`select=date,hrv_ms,whoop_recovery_score,sleep_deep_hrs,resting_hr,run_distance_miles&date=gte.${since.toISOString().split('T')[0]}&order=date.asc&limit=90`).catch(()=>[]);
+  if(!rows?.length)return;
+  const hrvRows=rows.filter(r=>r.hrv_ms>0);
+  if(hrvRows.length){HRV_BASE=hrvRows.reduce((s,r)=>s+r.hrv_ms,0)/hrvRows.length;$('snap-hrv').textContent=HRV_BASE.toFixed(1)+' ms';}
+  const recRows=rows.filter(r=>r.whoop_recovery_score>0);
+  if(recRows.length){REC_BASE=recRows.reduce((s,r)=>s+r.whoop_recovery_score,0)/recRows.length;$('snap-rec').textContent=Math.round(REC_BASE)+' / 100';}
+  const deepRows=rows.filter(r=>r.sleep_deep_hrs>0);
+  if(deepRows.length){DEEP_BASE=deepRows.reduce((s,r)=>s+r.sleep_deep_hrs,0)/deepRows.length;$('snap-deep').textContent=DEEP_BASE.toFixed(2)+' hrs';}
+  const rhrRows=rows.filter(r=>r.resting_hr>0);
+  if(rhrRows.length)RHR_BASE=rhrRows.reduce((s,r)=>s+r.resting_hr,0)/rhrRows.length;
+  const runRows=rows.filter(r=>r.run_distance_miles>0);
+  $('snap-runs').textContent=runRows.length+' runs';
+  $('snap-miles').textContent=runRows.reduce((s,r)=>s+r.run_distance_miles,0).toFixed(1)+' mi';
+  const byWeek={};
+  runRows.forEach(r=>{const d=new Date(r.date+'T12:00:00');const mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));const wk=mon.toISOString().split('T')[0];byWeek[wk]=(byWeek[wk]||0)+r.run_distance_miles;});
+  const peak=Math.max(0,...Object.values(byWeek));
+  PEAK_BASE=peak;$('snap-peak').textContent=peak.toFixed(1)+' mi';
+}
+
 async function init(){
   $('dout').textContent=daysLeft();buildPhase(wk());
-  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns()]);
+  await Promise.all([loadToday(),loadWeekStats(),loadHistory(),loadTodaysRuns(),loadRunChart(),loadUnloggedRuns(),loadSnapshot()]);
   await Promise.all([generateRec(),loadUpcoming()]);
 }
 init();
