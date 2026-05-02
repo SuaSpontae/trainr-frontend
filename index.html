@@ -612,12 +612,14 @@ async function loadWeekStats(){
 async function loadHistory(){
   const since=new Date();since.setDate(since.getDate()-14);
   const sinceStr=since.toISOString().split('T')[0];
+  const s90=new Date();s90.setDate(s90.getDate()-90);
+  const since90=s90.toISOString().split('T')[0];
   const[data,workouts,laps,meta,bestEfforts]=await Promise.all([
     get('training_log',`select=*&log_date=gte.${sinceStr}&order=log_date.desc,log_type.asc&limit=42`).catch(()=>[]),
     get('health_workouts',`select=start,heart_rate_avg,heart_rate_max,pace_per_mile_seconds,distance_miles,workout_type,elevation_gain_ft&workout_type=in.(Outdoor%20Run,Trail%20Run,Indoor%20Run,Treadmill%20Running)&start=gte.${sinceStr}&order=start.desc&limit=20`).catch(()=>[]),
-    get('workout_laps',`select=*&workout_date=gte.${sinceStr}&order=workout_date.desc,lap_index.asc&limit=500`).catch(()=>[]),
-    get('strava_activity_meta',`select=*&workout_date=gte.${sinceStr}&order=workout_date.desc&limit=20`).catch(()=>[]),
-    get('strava_best_efforts',`select=*&workout_date=gte.${sinceStr}&order=workout_date.desc,elapsed_seconds.asc&limit=150`).catch(()=>[])
+    get('workout_laps',`select=*&workout_date=gte.${since90}&order=workout_date.desc,lap_index.asc&limit=1000`).catch(()=>[]),
+    get('strava_activity_meta',`select=*&workout_date=gte.${since90}&order=workout_date.desc&limit=100`).catch(()=>[]),
+    get('strava_best_efforts',`select=*&workout_date=gte.${since90}&order=workout_date.desc,elapsed_seconds.asc&limit=300`).catch(()=>[])
   ]);
   D.history=data||[];
   D.workouts=workouts||[];
